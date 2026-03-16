@@ -1,0 +1,60 @@
+.adminPage {
+  padding: 24px clamp(16px, 4vw, 60px);
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.adminPage h1 {
+  margin: 0;
+}
+
+.adminPage__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.adminPage__table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+}
+
+.adminPage__table th,
+.adminPage__table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.adminPage__toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+.adminPage__search {
+  width: 280px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.adminPage__row--self {
+  background: rgba(0, 128, 255, 0.05);
+}
+
+.adminPage__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.adminPage__checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
