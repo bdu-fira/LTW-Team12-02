@@ -1,0 +1,158 @@
+.cart {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+  background: var(--card-bg);
+  width: 320px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: var(--shadow);
+}
+
+.cart__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cart__badge {
+  background: var(--accent);
+  color: var(--card-text);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.cart__empty {
+  padding: 16px;
+  background: var(--secondary-bg);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.cart__items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 360px;
+  overflow: auto;
+}
+
+.cart__item {
+  border: 1px solid var(--border);
+  padding: 12px;
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  background: var(--secondary-bg);
+}
+
+.cart__itemName {
+  margin: 0 0 6px;
+  font-weight: 600;
+}
+
+.cart__itemMeta {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.cart__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.cart__button {
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  padding: 6px 10px;
+  background: var(--card-bg);
+  cursor: pointer;
+  min-width: 36px;
+  font-weight: 700;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.cart__button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: var(--secondary-bg);
+}
+
+.cart__button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cart__button--danger {
+  border-color: rgba(255, 50, 50, 0.4);
+  color: rgb(220, 50, 50);
+}
+
+.cart__footer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cart__total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+.cart__totalValue {
+  font-size: 1.2rem;
+}
+
+.cart__actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.cart__clear,
+.cart__checkout {
+  border-radius: 999px;
+  border: 1px solid transparent;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-weight: 700;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cart__clear {
+  background: var(--secondary-bg);
+  color: var(--text);
+}
+
+.cart__clear:hover {
+  box-shadow: var(--shadow);
+  transform: translateY(-1px);
+}
+
+.cart__checkout {
+  background: var(--accent);
+  color: var(--card-text);
+}
+
+.cart__checkout:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

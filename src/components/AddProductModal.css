@@ -1,0 +1,75 @@
+.addProductOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  z-index: 30;
+}
+
+.addProductModal {
+  width: min(520px, 100%);
+  background: var(--surface);
+  border-radius: 18px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+.addProductModal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.addProductModal__close {
+  border: none;
+  background: none;
+  font-size: 1.3rem;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.addProductModal__form {
+  padding: 18px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.addProductModal__label {
+  display: flex;
+  flex-direction: column;
+  font-weight: 600;
+  font-size: 0.95rem;
+  gap: 6px;
+  color: var(--text);
+}
+
+.addProductModal__label input,
+.addProductModal__label textarea {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  outline: none;
+  font-size: 1rem;
+}
+
+.addProductModal__submit {
+  margin-top: 4px;
+  padding: 12px 14px;
+  border-radius: 999px;
+  border: none;
+  background: var(--accent);
+  color: var(--text);
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 0.2s ease;
+}
+
+.addProductModal__submit:hover {
+  filter: brightness(0.95);
+}
