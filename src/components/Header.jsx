@@ -11,7 +11,19 @@ export function Header({
   searchValue,
   onSearchChange,
   onSearchSubmit,
+  activeCategory,
+  onCategorySelect,
 }) {
+  const categories = [
+    { name: 'Tất cả', icon: '🌟' },
+    { name: 'Điện thoại', icon: '📱' },
+    { name: 'Laptop', icon: '💻' },
+    { name: 'Máy tính bảng', icon: '📱' },
+    { name: 'TV & Âm thanh', icon: '📺' },
+    { name: 'Gia dụng', icon: '🧺' },
+    { name: 'Thiết bị gia dụng', icon: '🏠' },
+  ]
+
   return (
     <header className="tgddHeader">
       <div className="tgddHeader__top">
@@ -23,7 +35,7 @@ export function Header({
         <div className="tgddHeader__account">
           {user ? (
             <>
-              <span className="tgddHeader__user">Xin chào, {user.name}</span>
+              <span className="tgddHeader__user">👤 Xin chào, <strong>{user.name}</strong></span>
               <button className="tgddHeader__link" onClick={onLogout}>
                 Đăng xuất
               </button>
@@ -44,17 +56,10 @@ export function Header({
       <div className="tgddHeader__main">
         <div className="tgddHeader__brand" aria-label="Thế Giới Di Động">
           <span className="tgddHeader__brandMark" aria-hidden="true"></span>
-          <span className="tgddHeader__brandText">Web bán thiết bị điện tử  </span>
+          <span className="tgddHeader__brandText" style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>React Shop</span>
         </div>
 
         <div className="tgddHeader__search">
-          <select className="tgddHeader__searchCategory" aria-label="Chọn danh mục">
-            <option>Toàn bộ</option>
-            <option>Điện thoại</option>
-            <option>Laptop</option>
-            <option>TV</option>
-            <option>Gia dụng</option>
-          </select>
           <input
             className="tgddHeader__searchInput"
             type="search"
@@ -78,7 +83,7 @@ export function Header({
             <span className="tgddHeader__actionIcon" aria-hidden="true">💬</span>
             Hỗ trợ
           </button>
-          {user && (user.role === 'staff' || user.role === 'admin') && user.approved && (
+          {user && (user.role === 'staff' || user.role === 'admin') && (
             <button className="tgddHeader__action" type="button" onClick={onManageClick}>
               <span className="tgddHeader__actionIcon" aria-hidden="true">🛠️</span>
               Quản lý
@@ -97,30 +102,21 @@ export function Header({
       </div>
 
       <nav className="tgddHeader__nav" aria-label="Danh mục chính">
-        <a href="#" className="tgddHeader__navLink">
-          <span className="tgddHeader__navIcon">📱</span>
-          <span>Điện thoại</span>
-        </a>
-        <a href="#" className="tgddHeader__navLink">
-          <span className="tgddHeader__navIcon">💻</span>
-          <span>Laptop</span>
-        </a>
-        <a href="#" className="tgddHeader__navLink">
-          <span className="tgddHeader__navIcon">📱</span>
-          <span>Máy tính bảng</span>
-        </a>
-        <a href="#" className="tgddHeader__navLink">
-          <span className="tgddHeader__navIcon">📺</span>
-          <span>TV & Âm thanh</span>
-        </a>
-        <a href="#" className="tgddHeader__navLink">
-          <span className="tgddHeader__navIcon">🧺</span>
-          <span>Gia dụng</span>
-        </a>
-        <a href="#" className="tgddHeader__navLink">
-          <span className="tgddHeader__navIcon">🏠</span>
-          <span>Thiết bị gia dụng</span>
-        </a>
+        {categories.map(cat => (
+          <a
+            key={cat.name}
+            href="#"
+            className="tgddHeader__navLink"
+            style={{
+              background: activeCategory === cat.name ? 'rgba(255, 212, 0, 0.2)' : '',
+              borderColor: activeCategory === cat.name ? 'rgba(255, 212, 0, 0.8)' : ''
+            }}
+            onClick={(e) => { e.preventDefault(); onCategorySelect?.(cat.name); }}
+          >
+            <span className="tgddHeader__navIcon">{cat.icon}</span>
+            <span>{cat.name}</span>
+          </a>
+        ))}
       </nav>
     </header>
   )

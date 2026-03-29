@@ -10,9 +10,6 @@ export function AuthPage({ onAuth, user, onLogout }) {
   const navigate = useNavigate()
 
   const [formError, setFormError] = useState('')
-  const [pendingEmail, setPendingEmail] = useState(() =>
-    window.localStorage.getItem('shop-pending-staff') || '',
-  )
 
   const handleSubmit = (event) => {
     event.preventDefault()
@@ -21,29 +18,14 @@ export function AuthPage({ onAuth, user, onLogout }) {
     const email = formData.get('email')?.toString().trim()
     const password = formData.get('password')?.toString().trim()
     const name = formData.get('name')?.toString().trim()
-    const role = formData.get('role')?.toString().trim() || 'customer'
 
     if (!email || !password) {
       setFormError('Vui lòng điền đầy đủ email và mật khẩu.')
       return
     }
 
-    onAuth({ email, password, name, role, mode })
+    onAuth({ email, password, name, mode })
       .then((user) => {
-        // If staff registers, their account must be approved first.
-        if (mode === 'register' && user?.role === 'staff' && !user.approved) {
-          setPendingEmail(user.email)
-          window.localStorage.setItem('shop-pending-staff', user.email)
-          return
-        }
-
-        // If the user logged in and happens to match a pending staff, clear the pending flag.
-        const pending = window.localStorage.getItem('shop-pending-staff')
-        if (pending && user?.email === pending) {
-          window.localStorage.removeItem('shop-pending-staff')
-          setPendingEmail('')
-        }
-
         if (user?.role === 'admin') {
           navigate('/admin')
         } else if (user?.role === 'staff') {
@@ -63,24 +45,11 @@ export function AuthPage({ onAuth, user, onLogout }) {
 
   const loggedIn = Boolean(user)
 
-  const pendingStatus = useMemo(() => {
-    if (!pendingEmail) return false
-    const users = JSON.parse(window.localStorage.getItem('shop-users') || '[]')
-    const pendingUser = users.find((u) => u.email === pendingEmail)
-    return Boolean(pendingUser && pendingUser.role === 'staff' && !pendingUser.approved)
-  }, [pendingEmail])
-
   const description = useMemo(() => {
-    if (!loggedIn && pendingStatus) {
-      return 'Tài khoản nhân viên của bạn đang chờ duyệt. Vui lòng chờ quản trị viên duyệt.'
-    }
-
     if (loggedIn) return 'Bạn đã đăng nhập. Có thể thoát bằng nút bên dưới.'
     if (mode === 'login') return 'Nhập email và mật khẩu để đăng nhập.'
-    return (
-      'Tạo tài khoản mới để vào hệ thống. Nếu bạn là nhân viên, tài khoản sẽ được duyệt trước khi vào được phần quản lý.'
-    )
-  }, [loggedIn, mode, pendingStatus])
+    return 'Tạo tài khoản mới để vào hệ thống.'
+  }, [loggedIn, mode])
 
   return (
     <div className="authPage">
@@ -101,14 +70,6 @@ export function AuthPage({ onAuth, user, onLogout }) {
           </div>
         ) : (
           <>
-            {pendingStatus && (
-              <div className="authPage__pending">
-                <p>
-                  Tài khoản nhân viên của bạn đang chờ duyệt. Vui lòng đợi quản trị viên duyệt.
-                </p>
-              </div>
-            )}
-
             <form className="authPage__form" onSubmit={handleSubmit}>
               {formError && <div className="authPage__error">{formError}</div>}
 
@@ -117,13 +78,6 @@ export function AuthPage({ onAuth, user, onLogout }) {
                 <label className="authPage__label">
                   Họ và tên
                   <input name="name" type="text" placeholder="Ví dụ: Nguyễn Văn A" />
-                </label>
-                <label className="authPage__label">
-                  Loại tài khoản
-                  <select name="role" defaultValue="customer">
-                    <option value="customer">Khách hàng</option>
-                    <option value="staff">Nhân viên (cần duyệt)</option>
-                  </select>
                 </label>
               </>
             )}
