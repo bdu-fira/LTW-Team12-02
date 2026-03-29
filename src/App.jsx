@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Routes, Route, useNavigate } from 'react-router-dom'
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import './App.css'
-import { AddProductModal } from './components/AddProductModal'
 import { Cart } from './components/Cart'
 import { Header } from './components/Header'
-import { ProductCard } from './components/ProductCard'
 import { AuthPage } from './pages/AuthPage'
+import { ProductCard } from './components/ProductCard'
 import { AdminPage } from './pages/AdminPage'
 import { StaffPage } from './pages/StaffPage'
 import { useLocalStorage } from './hooks/useLocalStorage'
@@ -15,42 +14,50 @@ function App() {
   const [products, setProducts] = useState([])
   const [isLoadingProducts, setIsLoadingProducts] = useState(false)
   const [productsError, setProductsError] = useState(null)
-  const [isAddProductOpen, setIsAddProductOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [appliedSearchTerm, setAppliedSearchTerm] = useState('')
+  const [activeCategory, setActiveCategory] = useState('Tất cả')
 
   const cartCount = useMemo(
-    () => cart.reduce((sum, item) => sum + item.quantity, 0),
+    () => {
+      const currentCart = Array.isArray(cart) ? cart : []
+      return currentCart.reduce((sum, item) => sum + (item.quantity || 1), 0)
+    },
     [cart],
   )
 
   const addToCart = (product) => {
     setCart((current) => {
-      const existing = current.find((item) => item.id === product.id)
+      const currentCart = Array.isArray(current) ? current : []
+      const existing = currentCart.find((item) => item.id === product.id)
       if (existing) {
-        return current.map((item) =>
+        return currentCart.map((item) =>
           item.id === product.id
             ? { ...item, quantity: item.quantity + 1 }
             : item,
         )
       }
 
-      return [...current, { ...product, quantity: 1 }]
+      return [...currentCart, { ...product, quantity: 1 }]
     })
   }
 
   const updateQuantity = (productId, nextQty) => {
-    setCart((current) =>
-      current
+    setCart((current) => {
+      const currentCart = Array.isArray(current) ? current : []
+      return currentCart
         .map((item) =>
           item.id === productId ? { ...item, quantity: Math.max(1, nextQty) } : item,
         )
-        .filter((item) => item.quantity > 0),
-    )
+        .filter((item) => item.quantity > 0)
+    })
   }
 
   const removeFromCart = (productId) => {
-    setCart((current) => current.filter((item) => item.id !== productId))
+    setCart((current) => {
+      const currentCart = Array.isArray(current) ? current : []
+      return currentCart.filter((item) => item.id !== productId)
+    })
   }
 
   const clearCart = () => setCart([])
@@ -59,20 +66,27 @@ function App() {
 
   useEffect(() => {
     // Ensure admin user exists
-    const users = JSON.parse(window.localStorage.getItem('shop-users') || '[]')
-    if (!users.find((u) => u.email === 'admin@shop.com')) {
-      const admin = {
-        email: 'admin@shop.com',
-        password: 'admin',
-        name: 'Quản trị viên',
-        role: 'admin',
-        approved: true,
+    try {
+      let users = JSON.parse(window.localStorage.getItem('shop-users') || '[]')
+      if (!Array.isArray(users)) users = []
+      
+      if (!users.find((u) => u?.email === 'admin@shop.com')) {
+        const admin = {
+          email: 'admin@shop.com',
+          password: 'admin',
+          name: 'Quản trị viên',
+          role: 'admin',
+          approved: true,
+        }
+        window.localStorage.setItem('shop-users', JSON.stringify([...users, admin]))
       }
-      window.localStorage.setItem('shop-users', JSON.stringify([...users, admin]))
+    } catch(e) {
+      console.warn('Could not parse users', e)
     }
   }, [])
 
   const navigate = useNavigate()
+  const location = useLocation()
   const openCart = () => setIsCartOpen(true)
   const closeCart = () => setIsCartOpen(false)
   const openLogin = () => navigate('/auth?mode=login')
@@ -91,15 +105,16 @@ function App() {
     navigate('/')
   }
 
-  const handleAuth = async ({ email, password, name, role = 'customer', mode = 'login' }) => {
-    const users = JSON.parse(window.localStorage.getItem('shop-users') || '[]')
+  const handleAuth = async ({ email, password, name, mode = 'login' }) => {
+    let users = []
+    try {
+      users = JSON.parse(window.localStorage.getItem('shop-users') || '[]')
+      if (!Array.isArray(users)) users = []
+    } catch(e) {}
 
     if (mode === 'login') {
       const found = users.find((u) => u.email === email && u.password === password)
       if (found) {
-        if (found.role === 'staff' && !found.approved) {
-          throw new Error('Tài khoản nhân viên đang chờ duyệt. Vui lòng đợi.')
-        }
         setCurrentUser(found)
         return found
       }
@@ -117,22 +132,12 @@ function App() {
       email,
       password,
       name: name || email,
-      role: role === 'staff' ? 'staff' : 'customer',
-      approved: role === 'staff' ? false : true,
+      role: 'customer',
+      approved: true, // Mặc định luôn là true vì tất cả đều là khách hàng
     }
 
     const next = [...users, newUser]
     window.localStorage.setItem('shop-users', JSON.stringify(next))
-
-    // Persist a pending staff flag so the UI can show "đang chờ duyệt" even after refresh
-    if (newUser.role === 'staff' && !newUser.approved) {
-      window.localStorage.setItem('shop-pending-staff', newUser.email)
-    }
-
-    if (newUser.approved) {
-      setCurrentUser(newUser)
-      return newUser
-    }
 
     setCurrentUser(null)
     return newUser
@@ -143,19 +148,34 @@ function App() {
     setProductsError(null)
 
     try {
-      const res = await fetch('/api/products')
+      const res = await fetch('http://localhost:4000/api/products')
       if (!res.ok) {
         throw new Error(`Lỗi khi lấy sản phẩm (${res.status})`)
       }
-      const data = await res.json()
+
+      const text = await res.text()
+      let data
+      try {
+        data = JSON.parse(text)
+        if (!Array.isArray(data)) {
+          data = []
+        }
+      } catch (e) {
+        throw new Error('API không trả về định dạng JSON (Có thể sai URL hoặc lỗi Server).')
+      }
 
       setProducts(
-        data.map((item) => ({
-          ...item,
-          price: Number(item.price) || 0,
-          image: item.image || '',
-          description: item.description || '',
-        })),
+        data.map((item) => {
+          const p = item || {}
+          return {
+            ...p,
+            name: String(p.name || ''),
+            price: Number(p.price) || 0,
+            image: String(p.image || ''),
+            description: String(p.description || ''),
+            category: String(p.category || 'Khác'),
+          }
+        }),
       )
     } catch (err) {
       console.error(err)
@@ -166,105 +186,51 @@ function App() {
   }
 
   useEffect(() => {
-    fetchProducts()
-  }, [])
+    if (location.pathname === '/') {
+      fetchProducts()
+    }
+  }, [location.pathname])
 
   const filteredProducts = useMemo(() => {
     const term = appliedSearchTerm.trim().toLowerCase()
-    if (!term) return products
+    let result = products
 
-    return products.filter((p) => {
-      const title = (p.name || '').toLowerCase()
-      const desc = (p.description || '').toLowerCase()
-      return title.includes(term) || desc.includes(term)
-    })
-  }, [products, appliedSearchTerm])
+    if (activeCategory && activeCategory !== 'Tất cả') {
+      result = result.filter(p => p.category === activeCategory)
+    }
+
+    if (term) {
+      result = result.filter((p) => {
+        const title = String(p.name || '').toLowerCase()
+        const desc = String(p.description || '').toLowerCase()
+        return title.includes(term) || desc.includes(term)
+      })
+    }
+    return result
+  }, [products, appliedSearchTerm, activeCategory])
 
   const openAddProduct = () => {
-    if (currentUser?.role === 'admin') {
-      navigate('/admin')
-      return
-    }
-    if (currentUser?.role === 'staff' && currentUser.approved) {
-      navigate('/staff')
-      return
-    }
-
-    setIsAddProductOpen(true)
+    navigate('/staff')
   }
-  const closeAddProduct = () => setIsAddProductOpen(false)
 
   useEffect(() => {
     const handleEscape = (event) => {
       if (event.key !== 'Escape') return
       if (isCartOpen) closeCart()
-      if (isAddProductOpen) closeAddProduct()
     }
 
     window.addEventListener('keydown', handleEscape)
     return () => window.removeEventListener('keydown', handleEscape)
-  }, [isCartOpen, isAddProductOpen])
-
-  const handleAddProduct = async ({ name, price, image, description }) => {
-    try {
-      const res = await fetch('/api/products', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, price: Number(price), image, description }),
-      })
-
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err?.error || 'Không thể thêm sản phẩm')
-      }
-
-      const newProduct = await res.json()
-      setProducts((current) => [
-        {
-          ...newProduct,
-          price: Number(newProduct.price) || 0,
-          image: newProduct.image || '',
-          description: newProduct.description || '',
-        },
-        ...current,
-      ])
-      closeAddProduct()
-    } catch (err) {
-      alert(err.message)
-    }
-  }
-
-  const handleDeleteProduct = async (productId) => {
-    try {
-      const res = await fetch(`/api/products/${productId}`, { method: 'DELETE' })
-      if (!res.ok && res.status !== 204) {
-        const err = await res.json()
-        throw new Error(err?.error || 'Không thể xóa sản phẩm')
-      }
-
-      setProducts((current) => current.filter((item) => item.id !== productId))
-    } catch (err) {
-      alert(err.message)
-    }
-  }
-
-  const handleStaffApproved = (email) => {
-    if (currentUser && currentUser.email === email) {
-      const updated = { ...currentUser, approved: true }
-      setCurrentUser(updated)
-      navigate('/staff')
-    }
-
-    const pending = window.localStorage.getItem('shop-pending-staff')
-    if (pending === email) {
-      window.localStorage.removeItem('shop-pending-staff')
-    }
-  }
+  }, [isCartOpen])
 
   const handleUserUpdate = (email) => {
     if (!currentUser || currentUser.email !== email) return
 
-    const users = JSON.parse(window.localStorage.getItem('shop-users') || '[]')
+    let users = []
+    try {
+      users = JSON.parse(window.localStorage.getItem('shop-users') || '[]')
+      if (!Array.isArray(users)) users = []
+    } catch(e) {}
     const updated = users.find((u) => u.email === email)
     if (updated) {
       setCurrentUser(updated)
@@ -279,7 +245,26 @@ function App() {
   }
 
   return (
-    <Routes>
+    <>
+      <style>{`
+        input:not([type="checkbox"]):not([type="radio"]), select, textarea {
+          background-color: #ffffff !important;
+          color: #333333 !important;
+          border: 1px solid #d1d5db !important;
+          border-radius: 8px;
+          padding: 10px 14px;
+          font-family: inherit;
+          font-size: 1rem;
+          transition: border-color 0.2s, box-shadow 0.2s;
+          color-scheme: light;
+        }
+        input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:focus {
+          outline: none;
+          border-color: #ffd400 !important;
+          box-shadow: 0 0 0 3px rgba(255, 212, 0, 0.3);
+        }
+      `}</style>
+      <Routes>
       <Route
         path="/"
         element={
@@ -295,22 +280,25 @@ function App() {
               searchValue={searchTerm}
               onSearchChange={setSearchTerm}
               onSearchSubmit={() => setAppliedSearchTerm(searchTerm)}
+              activeCategory={activeCategory}
+              onCategorySelect={setActiveCategory}
             />
 
       <section className="hero">
         <div className="hero__copy">
           <h2>Chọn hàng nhanh, giao hàng siêu tốc</h2>
           <p>
-            Mua sắm điện tử & gia dụng - giao ngay, đổi trả dễ dàng.
+            Khám phá hàng ngàn sản phẩm công nghệ chính hãng với mức giá ưu đãi. Cam kết 100% đổi trả miễn phí, bảo hành tận nhà.
           </p>
           <div className="hero__actions">
-            <button className="button">Xem khuyến mãi</button>
-            <button className="button button--secondary">Xem tất cả</button>
+            <button className="button" onClick={() => document.querySelector('.products')?.scrollIntoView({ behavior: 'smooth' })}>
+              🛒 Mua sắm ngay
+            </button>
+            <button className="button button--secondary">🎁 Khám phá ưu đãi</button>
           </div>
         </div>
         <div className="hero__image" aria-hidden="true">
-          <div className="hero__imageBg" />
-          <div className="hero__imageLayer" />
+          <img src="https://picsum.photos/seed/electronics/900/600" alt="Sản phẩm điện tử nổi bật" />
         </div>
       </section>
 
@@ -319,7 +307,7 @@ function App() {
           <header className="products__header">
             <div className="products__headerTop">
               <h2>Sản phẩm nổi bật</h2>
-              {(currentUser?.role === 'admin' || (currentUser?.role === 'staff' && currentUser?.approved)) && (
+              {(currentUser?.role === 'admin' || currentUser?.role === 'staff') && (
                 <button className="button button--secondary" onClick={openAddProduct}>
                   Thêm sản phẩm
                 </button>
@@ -351,13 +339,42 @@ function App() {
                   key={product.id}
                   product={product}
                   onAdd={addToCart}
-                  onDelete={handleDeleteProduct}
                 />
               ))}
             </div>
           )}
         </section>
       </main>
+
+      <footer className="footer" style={{ marginTop: 'auto', padding: '2rem 1rem', backgroundColor: '#f8f9fa', textAlign: 'center', borderTop: '1px solid #eee' }}>
+        <div className="footer__container" style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexWrap: 'wrap', gap: '2rem', justifyContent: 'space-between', textAlign: 'left' }}>
+          <div className="footer__col" style={{ flex: '1 1 250px' }}>
+            <h3 style={{ marginBottom: '1rem', fontSize: '1.2rem' }}>Về chúng tôi</h3>
+            <p style={{ color: '#666', lineHeight: '1.5' }}>Hệ thống bán lẻ thiết bị điện tử hàng đầu với cam kết chất lượng và dịch vụ hậu mãi tốt nhất.</p>
+          </div>
+          <div className="footer__col" style={{ flex: '1 1 250px' }}>
+            <h3 style={{ marginBottom: '1rem', fontSize: '1.2rem' }}>Hỗ trợ khách hàng</h3>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, color: '#666', lineHeight: '1.8' }}>
+              <li><a href="#" style={{ color: 'inherit', textDecoration: 'none' }}>Hotline: 1800.xxxx</a></li>
+              <li><a href="#" style={{ color: 'inherit', textDecoration: 'none' }}>Các câu hỏi thường gặp</a></li>
+              <li><a href="#" style={{ color: 'inherit', textDecoration: 'none' }}>Gửi yêu cầu hỗ trợ</a></li>
+              <li><a href="#" style={{ color: 'inherit', textDecoration: 'none' }}>Hướng dẫn đặt hàng</a></li>
+            </ul>
+          </div>
+          <div className="footer__col" style={{ flex: '1 1 250px' }}>
+            <h3 style={{ marginBottom: '1rem', fontSize: '1.2rem' }}>Chính sách</h3>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, color: '#666', lineHeight: '1.8' }}>
+              <li><a href="#" style={{ color: 'inherit', textDecoration: 'none' }}>Chính sách bảo hành</a></li>
+              <li><a href="#" style={{ color: 'inherit', textDecoration: 'none' }}>Chính sách đổi trả</a></li>
+              <li><a href="#" style={{ color: 'inherit', textDecoration: 'none' }}>Chính sách bảo mật</a></li>
+              <li><a href="#" style={{ color: 'inherit', textDecoration: 'none' }}>Điều khoản sử dụng</a></li>
+            </ul>
+          </div>
+        </div>
+        <div className="footer__bottom" style={{ marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid #ddd', color: '#999', fontSize: '0.9rem' }}>
+          © {new Date().getFullYear()} React Shop. All rights reserved.
+        </div>
+      </footer>
 
       {isCartOpen && (
         <div className="cartOverlay" onClick={closeCart}>
@@ -369,7 +386,7 @@ function App() {
               </button>
             </header>
             <Cart
-              items={cart}
+              items={Array.isArray(cart) ? cart : []}
               onUpdateQuantity={updateQuantity}
               onRemove={removeFromCart}
               onClear={clearCart}
@@ -378,9 +395,6 @@ function App() {
         </div>
       )}
 
-      {isAddProductOpen && (
-        <AddProductModal onClose={closeAddProduct} onAdd={handleAddProduct} />
-      )}
             </div>
           }
         />
@@ -399,7 +413,6 @@ function App() {
           element={
             <AdminPage
               user={currentUser}
-              onApprove={handleStaffApproved}
               onUserUpdate={handleUserUpdate}
               onUserDelete={handleUserDelete}
               onLogout={handleLogout}
@@ -407,6 +420,7 @@ function App() {
           }
         />
       </Routes>
+    </>
     )
 }
 

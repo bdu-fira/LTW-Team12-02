@@ -1,21 +1,27 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import './AdminPage.css'
 
-export function AdminPage({ user, onApprove, onUserUpdate, onUserDelete, onLogout }) {
+export function AdminPage({ user, onUserUpdate, onUserDelete, onLogout }) {
   const [users, setUsers] = useState([])
+  const navigate = useNavigate()
   const [filter, setFilter] = useState('')
   const [sortKey, setSortKey] = useState('email')
   const [sortDir, setSortDir] = useState('asc')
   const [editingEmail, setEditingEmail] = useState(null)
-  const [editForm, setEditForm] = useState({ name: '', role: '', approved: false })
+  const [editForm, setEditForm] = useState({ name: '', role: '' })
 
   useEffect(() => {
     loadUsers()
   }, [])
 
   const loadUsers = () => {
-    const users = JSON.parse(window.localStorage.getItem('shop-users') || '[]')
-    setUsers(users)
+    try {
+      const usersList = JSON.parse(window.localStorage.getItem('shop-users') || '[]')
+      setUsers(Array.isArray(usersList) ? usersList : [])
+    } catch(e) {
+      setUsers([])
+    }
   }
 
   const saveUsers = (next) => {
@@ -55,13 +61,12 @@ export function AdminPage({ user, onApprove, onUserUpdate, onUserDelete, onLogou
     setEditForm({
       name: user.name || '',
       role: user.role || 'customer',
-      approved: Boolean(user.approved),
     })
   }
 
   const cancelEditing = () => {
     setEditingEmail(null)
-    setEditForm({ name: '', role: '', approved: false })
+    setEditForm({ name: '', role: '' })
   }
 
   const saveEdit = (email) => {
@@ -71,7 +76,7 @@ export function AdminPage({ user, onApprove, onUserUpdate, onUserDelete, onLogou
         ...u,
         name: editForm.name,
         role: editForm.role,
-        approved: editForm.role === 'staff' ? editForm.approved : true,
+        approved: true, // Auto-approved
       }
       return updated
     })
@@ -91,14 +96,6 @@ export function AdminPage({ user, onApprove, onUserUpdate, onUserDelete, onLogou
     if (onUserDelete) onUserDelete(email)
   }
 
-  const approve = (email) => {
-    const next = users.map((u) =>
-      u.email === email ? { ...u, approved: true } : u,
-    )
-    saveUsers(next)
-    if (onApprove) onApprove(email)
-  }
-
   if (!user || user.role !== 'admin') {
     return (
       <main className="adminPage">
@@ -113,11 +110,16 @@ export function AdminPage({ user, onApprove, onUserUpdate, onUserDelete, onLogou
       <div className="adminPage__header">
         <div>
           <h1>Quản lý tài khoản</h1>
-          <p>Quản lý người dùng, duyệt nhân viên, chỉnh sửa và xóa tài khoản.</p>
+          <p>Quản lý người dùng, phân quyền truy cập, chỉnh sửa và xóa tài khoản.</p>
         </div>
-        <button className="button button--secondary" onClick={onLogout}>
-          Đăng xuất
-        </button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button className="button" onClick={() => navigate('/')}>
+            Trang chủ
+          </button>
+          <button className="button button--secondary" onClick={onLogout}>
+            Đăng xuất
+          </button>
+        </div>
       </div>
 
       <div className="adminPage__toolbar">
@@ -129,6 +131,7 @@ export function AdminPage({ user, onApprove, onUserUpdate, onUserDelete, onLogou
         />
       </div>
 
+      <div className="adminPage__tableWrapper" style={{ overflowX: 'auto' }}>
       <table className="adminPage__table">
         <thead>
           <tr>
@@ -142,7 +145,6 @@ export function AdminPage({ user, onApprove, onUserUpdate, onUserDelete, onLogou
             <th onClick={() => toggleSort('role')}>
               Vai trò {sortKey === 'role' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
             </th>
-            <th>Trạng thái</th>
             <th>Hành động</th>
           </tr>
         </thead>
@@ -174,31 +176,13 @@ export function AdminPage({ user, onApprove, onUserUpdate, onUserDelete, onLogou
                       <option value="admin">Quản trị</option>
                     </select>
                   ) : (
-                    u.role
-                  )}
-                </td>
-                <td>
-                  {isEditing ? (
-                    <label className="adminPage__checkbox">
-                      <input
-                        type="checkbox"
-                        checked={editForm.approved}
-                        onChange={(e) =>
-                          setEditForm((p) => ({ ...p, approved: e.target.checked }))
-                        }
-                      />
-                      Duyệt
-                    </label>
-                  ) : u.role === 'staff' ? (
-                    u.approved ? (
-                      'Đã duyệt'
-                    ) : (
-                      <button className="button" onClick={() => approve(u.email)}>
-                        Duyệt
-                      </button>
-                    )
-                  ) : (
-                    '—'
+                    <span className={`badge badge--${u.role}`} style={{
+                      padding: '4px 8px', borderRadius: '4px', fontSize: '0.85em', fontWeight: '500',
+                      backgroundColor: u.role === 'admin' ? '#ffebee' : u.role === 'staff' ? '#e3f2fd' : '#e8f5e9',
+                      color: u.role === 'admin' ? '#c62828' : u.role === 'staff' ? '#1565c0' : '#2e7d32'
+                    }}>
+                      {u.role === 'admin' ? 'Quản trị' : u.role === 'staff' ? 'Nhân viên' : 'Khách hàng'}
+                    </span>
                   )}
                 </td>
                 <td className="adminPage__actions">
@@ -227,6 +211,7 @@ export function AdminPage({ user, onApprove, onUserUpdate, onUserDelete, onLogou
           })}
         </tbody>
       </table>
+      </div>
     </main>
   )
 }
