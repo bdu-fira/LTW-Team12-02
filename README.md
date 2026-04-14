@@ -17,7 +17,7 @@ npm install
 npm run dev
 ```
 
-Mở trình duyệt tới địa chỉ được hiện trong terminal (thường là `http://localhost:5173`).
+Mở trình duyệt tới địa chỉ được hiện trong terminal (thường là `http://cio:5173`).
 
 ## 📡 Chạy API server (MySQL)
 
