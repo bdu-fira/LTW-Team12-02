@@ -45,6 +45,15 @@ export function AuthPage({ onAuth, user, onLogout }) {
 
   const loggedIn = Boolean(user)
 
+<<<<<<< HEAD
+=======
+  const description = useMemo(() => {
+    if (loggedIn) return 'Bạn đã đăng nhập. Có thể thoát bằng nút bên dưới.'
+    if (mode === 'login') return 'Nhập email và mật khẩu để đăng nhập.'
+    return 'Tạo tài khoản mới để vào hệ thống.'
+  }, [loggedIn, mode])
+
+>>>>>>> a97095c38f2510f165a15b5c9b1891a2466cecaa
   return (
     <div className="authPage container">
       <div className="authPage__card">
@@ -65,6 +74,7 @@ export function AuthPage({ onAuth, user, onLogout }) {
             </button>
           </div>
         ) : (
+<<<<<<< HEAD
           <form className="authPage__form" onSubmit={handleSubmit}>
             {formError && <div className="authPage__error">{formError}</div>}
 
@@ -73,6 +83,19 @@ export function AuthPage({ onAuth, user, onLogout }) {
                 Họ và tên
                 <input name="name" type="text" placeholder="Nguyễn Văn A" required />
               </label>
+=======
+          <>
+            <form className="authPage__form" onSubmit={handleSubmit}>
+              {formError && <div className="authPage__error">{formError}</div>}
+
+            {mode === 'register' && (
+              <>
+                <label className="authPage__label">
+                  Họ và tên
+                  <input name="name" type="text" placeholder="Ví dụ: Nguyễn Văn A" />
+                </label>
+              </>
+>>>>>>> a97095c38f2510f165a15b5c9b1891a2466cecaa
             )}
 
             <label className="authPage__label">

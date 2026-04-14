@@ -42,6 +42,7 @@ a {
   margin: 0;
   font-size: clamp(2.2rem, 3.5vw, 3rem);
   font-weight: 800;
+<<<<<<< HEAD
   color: var(--text-main);
   line-height: 1.2;
 }
@@ -62,11 +63,19 @@ a {
     text-shadow: 0 0 16px rgba(255, 107, 114, 0.9), 0 0 32px rgba(255, 107, 114, 0.35);
     opacity: 1;
   }
+=======
+  color: #0f172a;
+  line-height: 1.2;
+>>>>>>> a97095c38f2510f165a15b5c9b1891a2466cecaa
 }
 
 .hero__copy p {
   margin: 0;
+<<<<<<< HEAD
   color: var(--text-muted);
+=======
+  color: #334155;
+>>>>>>> a97095c38f2510f165a15b5c9b1891a2466cecaa
   font-size: 1.1rem;
   line-height: 1.6;
   max-width: 520px;
