@@ -1,21 +1,27 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import './AdminPage.css'
 
-export function AdminPage({ user, onApprove, onUserUpdate, onUserDelete, onLogout }) {
+export function AdminPage({ user, onUserUpdate, onUserDelete, onLogout }) {
   const [users, setUsers] = useState([])
+  const navigate = useNavigate()
   const [filter, setFilter] = useState('')
   const [sortKey, setSortKey] = useState('email')
   const [sortDir, setSortDir] = useState('asc')
   const [editingEmail, setEditingEmail] = useState(null)
-  const [editForm, setEditForm] = useState({ name: '', role: '', approved: false })
+  const [editForm, setEditForm] = useState({ name: '', role: '' })
 
   useEffect(() => {
     loadUsers()
   }, [])
 
   const loadUsers = () => {
-    const users = JSON.parse(window.localStorage.getItem('shop-users') || '[]')
-    setUsers(users)
+    try {
+      const usersList = JSON.parse(window.localStorage.getItem('shop-users') || '[]')
+      setUsers(Array.isArray(usersList) ? usersList : [])
+    } catch(e) {
+      setUsers([])
+    }
   }
 
   const saveUsers = (next) => {
@@ -55,13 +61,12 @@ export function AdminPage({ user, onApprove, onUserUpdate, onUserDelete, onLogou
     setEditForm({
       name: user.name || '',
       role: user.role || 'customer',
-      approved: Boolean(user.approved),
     })
   }
 
   const cancelEditing = () => {
     setEditingEmail(null)
-    setEditForm({ name: '', role: '', approved: false })
+    setEditForm({ name: '', role: '' })
   }
 
   const saveEdit = (email) => {
@@ -71,7 +76,7 @@ export function AdminPage({ user, onApprove, onUserUpdate, onUserDelete, onLogou
         ...u,
         name: editForm.name,
         role: editForm.role,
-        approved: editForm.role === 'staff' ? editForm.approved : true,
+        approved: true,
       }
       return updated
     })
@@ -91,71 +96,66 @@ export function AdminPage({ user, onApprove, onUserUpdate, onUserDelete, onLogou
     if (onUserDelete) onUserDelete(email)
   }
 
-  const approve = (email) => {
-    const next = users.map((u) =>
-      u.email === email ? { ...u, approved: true } : u,
-    )
-    saveUsers(next)
-    if (onApprove) onApprove(email)
-  }
-
   if (!user || user.role !== 'admin') {
     return (
-      <main className="adminPage">
+      <main className="adminPage container" style={{ textAlign: 'center', padding: '100px 0' }}>
         <h1>Không được phép</h1>
         <p>Chỉ quản trị viên mới có thể truy cập trang này.</p>
+        <button className="button-3d" style={{ marginTop: '20px' }} onClick={() => navigate('/')}>Quay lại</button>
       </main>
     )
   }
 
   return (
-    <main className="adminPage">
-      <div className="adminPage__header">
+    <main className="adminPage container" style={{ padding: '60px 0' }}>
+      <header className="adminPage__header" style={{ marginBottom: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '20px' }}>
         <div>
-          <h1>Quản lý tài khoản</h1>
-          <p>Quản lý người dùng, duyệt nhân viên, chỉnh sửa và xóa tài khoản.</p>
+          <h1 style={{ fontSize: '2.5rem', marginBottom: '8px' }}>Quản trị hệ thống</h1>
+          <p style={{ color: 'var(--text-muted)' }}>Quản lý tài khoản người dùng và phân quyền truy cập.</p>
         </div>
-        <button className="button button--secondary" onClick={onLogout}>
-          Đăng xuất
-        </button>
-      </div>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button className="button-3d secondary" onClick={() => navigate('/')}>
+            ⬅ Trang chủ
+          </button>
+          <button className="button-3d" onClick={onLogout}>
+            Đăng xuất
+          </button>
+        </div>
+      </header>
 
-      <div className="adminPage__toolbar">
+      <div className="adminPage__toolbar" style={{ marginBottom: '30px' }}>
         <input
-          className="adminPage__search"
-          placeholder="Tìm theo email hoặc tên..."
+          className="header__search-input"
+          style={{ maxWidth: '400px' }}
+          placeholder="Tìm user theo email hoặc tên..."
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         />
       </div>
 
-      <table className="adminPage__table">
+      <div className="adminPage__tableWrapper glass" style={{ borderRadius: '24px', padding: '20px', overflowX: 'auto', border: '1px solid var(--border)' }}>
+      <table className="adminPage__table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
         <thead>
-          <tr>
-            <th>STT</th>
-            <th onClick={() => toggleSort('email')}>
-              Email {sortKey === 'email' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
-            </th>
-            <th onClick={() => toggleSort('name')}>
-              Họ tên {sortKey === 'name' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
-            </th>
-            <th onClick={() => toggleSort('role')}>
-              Vai trò {sortKey === 'role' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
-            </th>
-            <th>Trạng thái</th>
-            <th>Hành động</th>
+          <tr style={{ borderBottom: '2px solid var(--border)' }}>
+            <th style={{ padding: '15px' }}>STT</th>
+            <th style={{ padding: '15px', cursor: 'pointer' }} onClick={() => toggleSort('email')}>Email</th>
+            <th style={{ padding: '15px', cursor: 'pointer' }} onClick={() => toggleSort('name')}>Họ tên</th>
+            <th style={{ padding: '15px', cursor: 'pointer' }} onClick={() => toggleSort('role')}>Vai trò</th>
+            <th style={{ padding: '15px' }}>Hành động</th>
           </tr>
         </thead>
         <tbody>
           {filteredUsers.map((u, idx) => {
             const isEditing = editingEmail === u.email
             return (
-              <tr key={u.email} className={u.email === user.email ? 'adminPage__row--self' : ''}>
-                <td>{idx + 1}</td>
-                <td>{u.email}</td>
-                <td>
+              <tr key={u.email} style={{ borderBottom: '1px solid var(--border)' }}>
+                <td style={{ padding: '15px' }}>{idx + 1}</td>
+                <td style={{ padding: '15px' }}>{u.email}</td>
+                <td style={{ padding: '15px' }}>
                   {isEditing ? (
                     <input
+                      className="header__search-input"
+                      style={{ padding: '6px 12px' }}
                       value={editForm.name}
                       onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))}
                     />
@@ -163,9 +163,11 @@ export function AdminPage({ user, onApprove, onUserUpdate, onUserDelete, onLogou
                     u.name || '---'
                   )}
                 </td>
-                <td>
+                <td style={{ padding: '15px' }}>
                   {isEditing ? (
                     <select
+                      className="header__search-input"
+                      style={{ padding: '6px 12px' }}
                       value={editForm.role}
                       onChange={(e) => setEditForm((p) => ({ ...p, role: e.target.value }))}
                     >
@@ -174,59 +176,37 @@ export function AdminPage({ user, onApprove, onUserUpdate, onUserDelete, onLogou
                       <option value="admin">Quản trị</option>
                     </select>
                   ) : (
-                    u.role
+                    <span style={{
+                      padding: '4px 12px', borderRadius: '100px', fontSize: '0.8rem', fontWeight: '700',
+                      backgroundColor: u.role === 'admin' ? 'rgba(239, 68, 68, 0.1)' : u.role === 'staff' ? 'rgba(99, 102, 241, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                      color: u.role === 'admin' ? 'var(--danger)' : u.role === 'staff' ? 'var(--primary)' : 'var(--success)',
+                      border: `1px solid ${u.role === 'admin' ? 'var(--danger)' : u.role === 'staff' ? 'var(--primary)' : 'var(--success)'}`
+                    }}>
+                      {u.role === 'admin' ? 'Quản trị' : u.role === 'staff' ? 'Nhân viên' : 'Khách hàng'}
+                    </span>
                   )}
                 </td>
-                <td>
-                  {isEditing ? (
-                    <label className="adminPage__checkbox">
-                      <input
-                        type="checkbox"
-                        checked={editForm.approved}
-                        onChange={(e) =>
-                          setEditForm((p) => ({ ...p, approved: e.target.checked }))
-                        }
-                      />
-                      Duyệt
-                    </label>
-                  ) : u.role === 'staff' ? (
-                    u.approved ? (
-                      'Đã duyệt'
+                <td style={{ padding: '15px' }}>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    {isEditing ? (
+                      <>
+                        <button className="button-3d" style={{ padding: '8px 12px', fontSize: '0.8rem' }} onClick={() => saveEdit(u.email)}>Lưu</button>
+                        <button className="button-3d secondary" style={{ padding: '8px 12px', fontSize: '0.8rem' }} onClick={cancelEditing}>Hủy</button>
+                      </>
                     ) : (
-                      <button className="button" onClick={() => approve(u.email)}>
-                        Duyệt
-                      </button>
-                    )
-                  ) : (
-                    '—'
-                  )}
-                </td>
-                <td className="adminPage__actions">
-                  {isEditing ? (
-                    <>
-                      <button className="button" onClick={() => saveEdit(u.email)}>
-                        Lưu
-                      </button>
-                      <button className="button button--secondary" onClick={cancelEditing}>
-                        Hủy
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button className="button" onClick={() => startEditing(u)}>
-                        Sửa
-                      </button>
-                      <button className="button button--danger" onClick={() => removeUser(u.email)}>
-                        Xóa
-                      </button>
-                    </>
-                  )}
+                      <>
+                        <button className="button-3d secondary" style={{ padding: '8px 12px', fontSize: '0.8rem' }} onClick={() => startEditing(u)}>Sửa</button>
+                        <button className="button-3d secondary" style={{ padding: '8px 12px', fontSize: '0.8rem', color: 'var(--danger)' }} onClick={() => removeUser(u.email)}>Xóa</button>
+                      </>
+                    )}
+                  </div>
                 </td>
               </tr>
             )
           })}
         </tbody>
       </table>
+      </div>
     </main>
   )
 }

@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Routes, Route, useNavigate } from 'react-router-dom'
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import './App.css'
-import { AddProductModal } from './components/AddProductModal'
 import { Cart } from './components/Cart'
 import { Header } from './components/Header'
-import { ProductCard } from './components/ProductCard'
+import { Hero } from './components/Hero'
+import { FlashSale } from './components/FlashSale'
+import { Footer } from './components/Footer'
 import { AuthPage } from './pages/AuthPage'
+import { ProductCard } from './components/ProductCard'
 import { AdminPage } from './pages/AdminPage'
 import { StaffPage } from './pages/StaffPage'
 import { useLocalStorage } from './hooks/useLocalStorage'
@@ -15,42 +17,50 @@ function App() {
   const [products, setProducts] = useState([])
   const [isLoadingProducts, setIsLoadingProducts] = useState(false)
   const [productsError, setProductsError] = useState(null)
-  const [isAddProductOpen, setIsAddProductOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [appliedSearchTerm, setAppliedSearchTerm] = useState('')
+  const [activeCategory, setActiveCategory] = useState('Tất cả')
 
   const cartCount = useMemo(
-    () => cart.reduce((sum, item) => sum + item.quantity, 0),
+    () => {
+      const currentCart = Array.isArray(cart) ? cart : []
+      return currentCart.reduce((sum, item) => sum + (item.quantity || 1), 0)
+    },
     [cart],
   )
 
   const addToCart = (product) => {
     setCart((current) => {
-      const existing = current.find((item) => item.id === product.id)
+      const currentCart = Array.isArray(current) ? current : []
+      const existing = currentCart.find((item) => item.id === product.id)
       if (existing) {
-        return current.map((item) =>
+        return currentCart.map((item) =>
           item.id === product.id
             ? { ...item, quantity: item.quantity + 1 }
             : item,
         )
       }
 
-      return [...current, { ...product, quantity: 1 }]
+      return [...currentCart, { ...product, quantity: 1 }]
     })
   }
 
   const updateQuantity = (productId, nextQty) => {
-    setCart((current) =>
-      current
+    setCart((current) => {
+      const currentCart = Array.isArray(current) ? current : []
+      return currentCart
         .map((item) =>
           item.id === productId ? { ...item, quantity: Math.max(1, nextQty) } : item,
         )
-        .filter((item) => item.quantity > 0),
-    )
+        .filter((item) => item.quantity > 0)
+    })
   }
 
   const removeFromCart = (productId) => {
-    setCart((current) => current.filter((item) => item.id !== productId))
+    setCart((current) => {
+      const currentCart = Array.isArray(current) ? current : []
+      return currentCart.filter((item) => item.id !== productId)
+    })
   }
 
   const clearCart = () => setCart([])
@@ -59,20 +69,27 @@ function App() {
 
   useEffect(() => {
     // Ensure admin user exists
-    const users = JSON.parse(window.localStorage.getItem('shop-users') || '[]')
-    if (!users.find((u) => u.email === 'admin@shop.com')) {
-      const admin = {
-        email: 'admin@shop.com',
-        password: 'admin',
-        name: 'Quản trị viên',
-        role: 'admin',
-        approved: true,
+    try {
+      let users = JSON.parse(window.localStorage.getItem('shop-users') || '[]')
+      if (!Array.isArray(users)) users = []
+      
+      if (!users.find((u) => u?.email === 'admin@shop.com')) {
+        const admin = {
+          email: 'admin@shop.com',
+          password: 'admin',
+          name: 'Quản trị viên',
+          role: 'admin',
+          approved: true,
+        }
+        window.localStorage.setItem('shop-users', JSON.stringify([...users, admin]))
       }
-      window.localStorage.setItem('shop-users', JSON.stringify([...users, admin]))
+    } catch(e) {
+      console.warn('Could not parse users', e)
     }
   }, [])
 
   const navigate = useNavigate()
+  const location = useLocation()
   const openCart = () => setIsCartOpen(true)
   const closeCart = () => setIsCartOpen(false)
   const openLogin = () => navigate('/auth?mode=login')
@@ -91,15 +108,16 @@ function App() {
     navigate('/')
   }
 
-  const handleAuth = async ({ email, password, name, role = 'customer', mode = 'login' }) => {
-    const users = JSON.parse(window.localStorage.getItem('shop-users') || '[]')
+  const handleAuth = async ({ email, password, name, mode = 'login' }) => {
+    let users = []
+    try {
+      users = JSON.parse(window.localStorage.getItem('shop-users') || '[]')
+      if (!Array.isArray(users)) users = []
+    } catch(e) {}
 
     if (mode === 'login') {
       const found = users.find((u) => u.email === email && u.password === password)
       if (found) {
-        if (found.role === 'staff' && !found.approved) {
-          throw new Error('Tài khoản nhân viên đang chờ duyệt. Vui lòng đợi.')
-        }
         setCurrentUser(found)
         return found
       }
@@ -117,22 +135,12 @@ function App() {
       email,
       password,
       name: name || email,
-      role: role === 'staff' ? 'staff' : 'customer',
-      approved: role === 'staff' ? false : true,
+      role: 'customer',
+      approved: true,
     }
 
     const next = [...users, newUser]
     window.localStorage.setItem('shop-users', JSON.stringify(next))
-
-    // Persist a pending staff flag so the UI can show "đang chờ duyệt" even after refresh
-    if (newUser.role === 'staff' && !newUser.approved) {
-      window.localStorage.setItem('shop-pending-staff', newUser.email)
-    }
-
-    if (newUser.approved) {
-      setCurrentUser(newUser)
-      return newUser
-    }
 
     setCurrentUser(null)
     return newUser
@@ -143,19 +151,34 @@ function App() {
     setProductsError(null)
 
     try {
-      const res = await fetch('/api/products')
+      const res = await fetch('http://localhost:4000/api/products')
       if (!res.ok) {
         throw new Error(`Lỗi khi lấy sản phẩm (${res.status})`)
       }
-      const data = await res.json()
+
+      const text = await res.text()
+      let data
+      try {
+        data = JSON.parse(text)
+        if (!Array.isArray(data)) {
+          data = []
+        }
+      } catch (e) {
+        throw new Error('API không trả về định dạng JSON (Có thể sai URL hoặc lỗi Server).')
+      }
 
       setProducts(
-        data.map((item) => ({
-          ...item,
-          price: Number(item.price) || 0,
-          image: item.image || '',
-          description: item.description || '',
-        })),
+        data.map((item) => {
+          const p = item || {}
+          return {
+            ...p,
+            name: String(p.name || ''),
+            price: Number(p.price) || 0,
+            image: String(p.image || ''),
+            description: String(p.description || ''),
+            category: String(p.category || 'Khác'),
+          }
+        }),
       )
     } catch (err) {
       console.error(err)
@@ -166,105 +189,51 @@ function App() {
   }
 
   useEffect(() => {
-    fetchProducts()
-  }, [])
+    if (location.pathname === '/') {
+      fetchProducts()
+    }
+  }, [location.pathname])
 
   const filteredProducts = useMemo(() => {
     const term = appliedSearchTerm.trim().toLowerCase()
-    if (!term) return products
+    let result = products
 
-    return products.filter((p) => {
-      const title = (p.name || '').toLowerCase()
-      const desc = (p.description || '').toLowerCase()
-      return title.includes(term) || desc.includes(term)
-    })
-  }, [products, appliedSearchTerm])
+    if (activeCategory && activeCategory !== 'Tất cả') {
+      result = result.filter(p => p.category === activeCategory)
+    }
+
+    if (term) {
+      result = result.filter((p) => {
+        const title = String(p.name || '').toLowerCase()
+        const desc = String(p.description || '').toLowerCase()
+        return title.includes(term) || desc.includes(term)
+      })
+    }
+    return result
+  }, [products, appliedSearchTerm, activeCategory])
 
   const openAddProduct = () => {
-    if (currentUser?.role === 'admin') {
-      navigate('/admin')
-      return
-    }
-    if (currentUser?.role === 'staff' && currentUser.approved) {
-      navigate('/staff')
-      return
-    }
-
-    setIsAddProductOpen(true)
+    navigate('/staff')
   }
-  const closeAddProduct = () => setIsAddProductOpen(false)
 
   useEffect(() => {
     const handleEscape = (event) => {
       if (event.key !== 'Escape') return
       if (isCartOpen) closeCart()
-      if (isAddProductOpen) closeAddProduct()
     }
 
     window.addEventListener('keydown', handleEscape)
     return () => window.removeEventListener('keydown', handleEscape)
-  }, [isCartOpen, isAddProductOpen])
-
-  const handleAddProduct = async ({ name, price, image, description }) => {
-    try {
-      const res = await fetch('/api/products', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, price: Number(price), image, description }),
-      })
-
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err?.error || 'Không thể thêm sản phẩm')
-      }
-
-      const newProduct = await res.json()
-      setProducts((current) => [
-        {
-          ...newProduct,
-          price: Number(newProduct.price) || 0,
-          image: newProduct.image || '',
-          description: newProduct.description || '',
-        },
-        ...current,
-      ])
-      closeAddProduct()
-    } catch (err) {
-      alert(err.message)
-    }
-  }
-
-  const handleDeleteProduct = async (productId) => {
-    try {
-      const res = await fetch(`/api/products/${productId}`, { method: 'DELETE' })
-      if (!res.ok && res.status !== 204) {
-        const err = await res.json()
-        throw new Error(err?.error || 'Không thể xóa sản phẩm')
-      }
-
-      setProducts((current) => current.filter((item) => item.id !== productId))
-    } catch (err) {
-      alert(err.message)
-    }
-  }
-
-  const handleStaffApproved = (email) => {
-    if (currentUser && currentUser.email === email) {
-      const updated = { ...currentUser, approved: true }
-      setCurrentUser(updated)
-      navigate('/staff')
-    }
-
-    const pending = window.localStorage.getItem('shop-pending-staff')
-    if (pending === email) {
-      window.localStorage.removeItem('shop-pending-staff')
-    }
-  }
+  }, [isCartOpen])
 
   const handleUserUpdate = (email) => {
     if (!currentUser || currentUser.email !== email) return
 
-    const users = JSON.parse(window.localStorage.getItem('shop-users') || '[]')
+    let users = []
+    try {
+      users = JSON.parse(window.localStorage.getItem('shop-users') || '[]')
+      if (!Array.isArray(users)) users = []
+    } catch(e) {}
     const updated = users.find((u) => u.email === email)
     if (updated) {
       setCurrentUser(updated)
@@ -279,109 +248,74 @@ function App() {
   }
 
   return (
-    <Routes>
-      <Route
-        path="/"
-        element={
-          <div className="app">
-            <Header
-              cartCount={cartCount}
-              onCartClick={openCart}
-              onLoginClick={openLogin}
-              onRegisterClick={openRegister}
-              onManageClick={openManage}
-              onLogout={handleLogout}
-              user={currentUser}
-              searchValue={searchTerm}
-              onSearchChange={setSearchTerm}
-              onSearchSubmit={() => setAppliedSearchTerm(searchTerm)}
-            />
+    <div className="app">
+      <Header
+        cartCount={cartCount}
+        onCartClick={openCart}
+        onLoginClick={openLogin}
+        onRegisterClick={openRegister}
+        onManageClick={openManage}
+        onLogout={handleLogout}
+        user={currentUser}
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        onSearchSubmit={() => setAppliedSearchTerm(searchTerm)}
+        activeCategory={activeCategory}
+        onCategorySelect={setActiveCategory}
+      />
 
-      <section className="hero">
-        <div className="hero__copy">
-          <h2>Chọn hàng nhanh, giao hàng siêu tốc</h2>
-          <p>
-            Mua sắm điện tử & gia dụng - giao ngay, đổi trả dễ dàng.
-          </p>
-          <div className="hero__actions">
-            <button className="button">Xem khuyến mãi</button>
-            <button className="button button--secondary">Xem tất cả</button>
-          </div>
-        </div>
-        <div className="hero__image" aria-hidden="true">
-          <div className="hero__imageBg" />
-          <div className="hero__imageLayer" />
-        </div>
-      </section>
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <>
+              <Hero />
+              <FlashSale />
+              <main className="main container">
+                <section className="products">
+                  <header className="products__header" style={{ marginBottom: '40px', textAlign: 'left' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '20px' }}>
+                      <div>
+                        <h2 style={{ fontSize: '2rem', marginBottom: '8px' }}>Sản phẩm nổi bật</h2>
+                        <p style={{ color: 'var(--text-muted)' }}>Khám phá các thiết bị công nghệ mới nhất hiện nay.</p>
+                      </div>
+                      {(currentUser?.role === 'admin' || currentUser?.role === 'staff') && (
+                        <button className="button-3d" onClick={openAddProduct}>
+                          + Thêm sản phẩm
+                        </button>
+                      )}
+                    </div>
+                  </header>
 
-      <main className="main">
-        <section className="products">
-          <header className="products__header">
-            <div className="products__headerTop">
-              <h2>Sản phẩm nổi bật</h2>
-              {(currentUser?.role === 'admin' || (currentUser?.role === 'staff' && currentUser?.approved)) && (
-                <button className="button button--secondary" onClick={openAddProduct}>
-                  Thêm sản phẩm
-                </button>
-              )}
-            </div>
-            <p>Thêm vào giỏ để được mua nhanh, giao nhanh.</p>
-          </header>
-
-          {isLoadingProducts ? (
-            <div className="emptyState">
-              <p>Đang tải sản phẩm...</p>
-            </div>
-          ) : productsError ? (
-            <div className="emptyState">
-              <p>{productsError}</p>
-              <button className="button" onClick={fetchProducts}>
-                Thử lại
-              </button>
-            </div>
-          ) : filteredProducts.length === 0 ? (
-            <div className="emptyState">
-              <p>Không tìm thấy sản phẩm phù hợp.</p>
-              <p>Thử đổi từ khóa tìm kiếm hoặc để trống để hiển thị tất cả.</p>
-            </div>
-          ) : (
-            <div className="productGrid">
-              {filteredProducts.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onAdd={addToCart}
-                  onDelete={handleDeleteProduct}
-                />
-              ))}
-            </div>
-          )}
-        </section>
-      </main>
-
-      {isCartOpen && (
-        <div className="cartOverlay" onClick={closeCart}>
-          <div className="cartDrawer" onClick={(e) => e.stopPropagation()}>
-            <header className="cartDrawer__header">
-              <h2>Giỏ hàng</h2>
-              <button className="cartDrawer__close" onClick={closeCart}>
-                ✕
-              </button>
-            </header>
-            <Cart
-              items={cart}
-              onUpdateQuantity={updateQuantity}
-              onRemove={removeFromCart}
-              onClear={clearCart}
-            />
-          </div>
-        </div>
-      )}
-
-      {isAddProductOpen && (
-        <AddProductModal onClose={closeAddProduct} onAdd={handleAddProduct} />
-      )}
-            </div>
+                  {isLoadingProducts ? (
+                    <div style={{ padding: '80px 0', textAlign: 'center' }}>
+                      <p>Đang tải sản phẩm...</p>
+                    </div>
+                  ) : productsError ? (
+                    <div style={{ padding: '80px 0', textAlign: 'center' }}>
+                      <p>{productsError}</p>
+                      <button className="button-3d" style={{ marginTop: '16px' }} onClick={fetchProducts}>
+                        Thử lại
+                      </button>
+                    </div>
+                  ) : filteredProducts.length === 0 ? (
+                    <div style={{ padding: '80px 0', textAlign: 'center' }}>
+                      <p>Không tìm thấy sản phẩm phù hợp.</p>
+                    </div>
+                  ) : (
+                    <div className="productGrid">
+                      {filteredProducts.map((product) => (
+                        <ProductCard
+                          key={product.id}
+                          product={product}
+                          onAdd={addToCart}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </section>
+              </main>
+            </>
           }
         />
         <Route
@@ -399,7 +333,6 @@ function App() {
           element={
             <AdminPage
               user={currentUser}
-              onApprove={handleStaffApproved}
               onUserUpdate={handleUserUpdate}
               onUserDelete={handleUserDelete}
               onLogout={handleLogout}
@@ -407,7 +340,41 @@ function App() {
           }
         />
       </Routes>
-    )
+
+      <Footer />
+
+      {isCartOpen && (
+        <div className="cartOverlay" style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          backdropFilter: 'blur(4px)',
+          zIndex: 2000,
+          display: 'flex',
+          justifyContent: 'flex-end'
+        }} onClick={closeCart}>
+          <div className="cartDrawer glass" style={{
+            width: '100%',
+            maxWidth: '450px',
+            height: '100%',
+            padding: '30px',
+            boxShadow: '-10px 0 30px rgba(0,0,0,0.1)',
+            overflowY: 'auto'
+          }} onClick={(e) => e.stopPropagation()}>
+            <Cart
+              items={Array.isArray(cart) ? cart : []}
+              onUpdateQuantity={updateQuantity}
+              onRemove={removeFromCart}
+              onClear={clearCart}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default App
