@@ -3,9 +3,12 @@ import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import './App.css'
 import { Cart } from './components/Cart'
 import { Header } from './components/Header'
+<<<<<<< HEAD
 import { Hero } from './components/Hero'
 import { FlashSale } from './components/FlashSale'
 import { Footer } from './components/Footer'
+=======
+>>>>>>> a97095c38f2510f165a15b5c9b1891a2466cecaa
 import { AuthPage } from './pages/AuthPage'
 import { ProductCard } from './components/ProductCard'
 import { AdminPage } from './pages/AdminPage'
@@ -136,7 +139,11 @@ function App() {
       password,
       name: name || email,
       role: 'customer',
+<<<<<<< HEAD
       approved: true,
+=======
+      approved: true, // Mặc định luôn là true vì tất cả đều là khách hàng
+>>>>>>> a97095c38f2510f165a15b5c9b1891a2466cecaa
     }
 
     const next = [...users, newUser]
@@ -248,6 +255,7 @@ function App() {
   }
 
   return (
+<<<<<<< HEAD
     <div className="app">
       <Header
         cartCount={cartCount}
@@ -316,6 +324,159 @@ function App() {
                 </section>
               </main>
             </>
+=======
+    <>
+      <style>{`
+        input:not([type="checkbox"]):not([type="radio"]), select, textarea {
+          background-color: #ffffff !important;
+          color: #333333 !important;
+          border: 1px solid #d1d5db !important;
+          border-radius: 8px;
+          padding: 10px 14px;
+          font-family: inherit;
+          font-size: 1rem;
+          transition: border-color 0.2s, box-shadow 0.2s;
+          color-scheme: light;
+        }
+        input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:focus {
+          outline: none;
+          border-color: #ffd400 !important;
+          box-shadow: 0 0 0 3px rgba(255, 212, 0, 0.3);
+        }
+      `}</style>
+      <Routes>
+      <Route
+        path="/"
+        element={
+          <div className="app">
+            <Header
+              cartCount={cartCount}
+              onCartClick={openCart}
+              onLoginClick={openLogin}
+              onRegisterClick={openRegister}
+              onManageClick={openManage}
+              onLogout={handleLogout}
+              user={currentUser}
+              searchValue={searchTerm}
+              onSearchChange={setSearchTerm}
+              onSearchSubmit={() => setAppliedSearchTerm(searchTerm)}
+              activeCategory={activeCategory}
+              onCategorySelect={setActiveCategory}
+            />
+
+      <section className="hero">
+        <div className="hero__copy">
+          <h2>Chọn hàng nhanh, giao hàng siêu tốc</h2>
+          <p>
+            Khám phá hàng ngàn sản phẩm công nghệ chính hãng với mức giá ưu đãi. Cam kết 100% đổi trả miễn phí, bảo hành tận nhà.
+          </p>
+          <div className="hero__actions">
+            <button className="button" onClick={() => document.querySelector('.products')?.scrollIntoView({ behavior: 'smooth' })}>
+              🛒 Mua sắm ngay
+            </button>
+            <button className="button button--secondary">🎁 Khám phá ưu đãi</button>
+          </div>
+        </div>
+        <div className="hero__image" aria-hidden="true">
+          <img src="https://picsum.photos/seed/electronics/900/600" alt="Sản phẩm điện tử nổi bật" />
+        </div>
+      </section>
+
+      <main className="main">
+        <section className="products">
+          <header className="products__header">
+            <div className="products__headerTop">
+              <h2>Sản phẩm nổi bật</h2>
+              {(currentUser?.role === 'admin' || currentUser?.role === 'staff') && (
+                <button className="button button--secondary" onClick={openAddProduct}>
+                  Thêm sản phẩm
+                </button>
+              )}
+            </div>
+            <p>Thêm vào giỏ để được mua nhanh, giao nhanh.</p>
+          </header>
+
+          {isLoadingProducts ? (
+            <div className="emptyState">
+              <p>Đang tải sản phẩm...</p>
+            </div>
+          ) : productsError ? (
+            <div className="emptyState">
+              <p>{productsError}</p>
+              <button className="button" onClick={fetchProducts}>
+                Thử lại
+              </button>
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="emptyState">
+              <p>Không tìm thấy sản phẩm phù hợp.</p>
+              <p>Thử đổi từ khóa tìm kiếm hoặc để trống để hiển thị tất cả.</p>
+            </div>
+          ) : (
+            <div className="productGrid">
+              {filteredProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onAdd={addToCart}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      </main>
+
+      <footer className="footer" style={{ marginTop: 'auto', padding: '2rem 1rem', backgroundColor: '#f8f9fa', textAlign: 'center', borderTop: '1px solid #eee' }}>
+        <div className="footer__container" style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexWrap: 'wrap', gap: '2rem', justifyContent: 'space-between', textAlign: 'left' }}>
+          <div className="footer__col" style={{ flex: '1 1 250px' }}>
+            <h3 style={{ marginBottom: '1rem', fontSize: '1.2rem' }}>Về chúng tôi</h3>
+            <p style={{ color: '#666', lineHeight: '1.5' }}>Hệ thống bán lẻ thiết bị điện tử hàng đầu với cam kết chất lượng và dịch vụ hậu mãi tốt nhất.</p>
+          </div>
+          <div className="footer__col" style={{ flex: '1 1 250px' }}>
+            <h3 style={{ marginBottom: '1rem', fontSize: '1.2rem' }}>Hỗ trợ khách hàng</h3>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, color: '#666', lineHeight: '1.8' }}>
+              <li><a href="#" style={{ color: 'inherit', textDecoration: 'none' }}>Hotline: 1800.xxxx</a></li>
+              <li><a href="#" style={{ color: 'inherit', textDecoration: 'none' }}>Các câu hỏi thường gặp</a></li>
+              <li><a href="#" style={{ color: 'inherit', textDecoration: 'none' }}>Gửi yêu cầu hỗ trợ</a></li>
+              <li><a href="#" style={{ color: 'inherit', textDecoration: 'none' }}>Hướng dẫn đặt hàng</a></li>
+            </ul>
+          </div>
+          <div className="footer__col" style={{ flex: '1 1 250px' }}>
+            <h3 style={{ marginBottom: '1rem', fontSize: '1.2rem' }}>Chính sách</h3>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, color: '#666', lineHeight: '1.8' }}>
+              <li><a href="#" style={{ color: 'inherit', textDecoration: 'none' }}>Chính sách bảo hành</a></li>
+              <li><a href="#" style={{ color: 'inherit', textDecoration: 'none' }}>Chính sách đổi trả</a></li>
+              <li><a href="#" style={{ color: 'inherit', textDecoration: 'none' }}>Chính sách bảo mật</a></li>
+              <li><a href="#" style={{ color: 'inherit', textDecoration: 'none' }}>Điều khoản sử dụng</a></li>
+            </ul>
+          </div>
+        </div>
+        <div className="footer__bottom" style={{ marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid #ddd', color: '#999', fontSize: '0.9rem' }}>
+          © {new Date().getFullYear()} React Shop. All rights reserved.
+        </div>
+      </footer>
+
+      {isCartOpen && (
+        <div className="cartOverlay" onClick={closeCart}>
+          <div className="cartDrawer" onClick={(e) => e.stopPropagation()}>
+            <header className="cartDrawer__header">
+              <h2>Giỏ hàng</h2>
+              <button className="cartDrawer__close" onClick={closeCart}>
+                ✕
+              </button>
+            </header>
+            <Cart
+              items={Array.isArray(cart) ? cart : []}
+              onUpdateQuantity={updateQuantity}
+              onRemove={removeFromCart}
+              onClear={clearCart}
+            />
+          </div>
+        </div>
+      )}
+
+            </div>
+>>>>>>> a97095c38f2510f165a15b5c9b1891a2466cecaa
           }
         />
         <Route
@@ -340,6 +501,7 @@ function App() {
           }
         />
       </Routes>
+<<<<<<< HEAD
 
       <Footer />
 
@@ -375,6 +537,10 @@ function App() {
       )}
     </div>
   )
+=======
+    </>
+    )
+>>>>>>> a97095c38f2510f165a15b5c9b1891a2466cecaa
 }
 
 export default App

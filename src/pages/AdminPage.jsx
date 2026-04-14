@@ -76,7 +76,11 @@ export function AdminPage({ user, onUserUpdate, onUserDelete, onLogout }) {
         ...u,
         name: editForm.name,
         role: editForm.role,
+<<<<<<< HEAD
         approved: true,
+=======
+        approved: true, // Auto-approved
+>>>>>>> a97095c38f2510f165a15b5c9b1891a2466cecaa
       }
       return updated
     })
@@ -110,6 +114,7 @@ export function AdminPage({ user, onUserUpdate, onUserDelete, onLogout }) {
     <main className="adminPage container" style={{ padding: '60px 0' }}>
       <header className="adminPage__header" style={{ marginBottom: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '20px' }}>
         <div>
+<<<<<<< HEAD
           <h1 style={{ fontSize: '2.5rem', marginBottom: '8px' }}>Quản trị hệ thống</h1>
           <p style={{ color: 'var(--text-muted)' }}>Quản lý tài khoản người dùng và phân quyền truy cập.</p>
         </div>
@@ -122,6 +127,20 @@ export function AdminPage({ user, onUserUpdate, onUserDelete, onLogout }) {
           </button>
         </div>
       </header>
+=======
+          <h1>Quản lý tài khoản</h1>
+          <p>Quản lý người dùng, phân quyền truy cập, chỉnh sửa và xóa tài khoản.</p>
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button className="button" onClick={() => navigate('/')}>
+            Trang chủ
+          </button>
+          <button className="button button--secondary" onClick={onLogout}>
+            Đăng xuất
+          </button>
+        </div>
+      </div>
+>>>>>>> a97095c38f2510f165a15b5c9b1891a2466cecaa
 
       <div className="adminPage__toolbar" style={{ marginBottom: '30px' }}>
         <input
@@ -133,6 +152,7 @@ export function AdminPage({ user, onUserUpdate, onUserDelete, onLogout }) {
         />
       </div>
 
+<<<<<<< HEAD
       <div className="adminPage__tableWrapper glass" style={{ borderRadius: '24px', padding: '20px', overflowX: 'auto', border: '1px solid var(--border)' }}>
       <table className="adminPage__table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
         <thead>
@@ -142,6 +162,23 @@ export function AdminPage({ user, onUserUpdate, onUserDelete, onLogout }) {
             <th style={{ padding: '15px', cursor: 'pointer' }} onClick={() => toggleSort('name')}>Họ tên</th>
             <th style={{ padding: '15px', cursor: 'pointer' }} onClick={() => toggleSort('role')}>Vai trò</th>
             <th style={{ padding: '15px' }}>Hành động</th>
+=======
+      <div className="adminPage__tableWrapper" style={{ overflowX: 'auto' }}>
+      <table className="adminPage__table">
+        <thead>
+          <tr>
+            <th>STT</th>
+            <th onClick={() => toggleSort('email')}>
+              Email {sortKey === 'email' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
+            </th>
+            <th onClick={() => toggleSort('name')}>
+              Họ tên {sortKey === 'name' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
+            </th>
+            <th onClick={() => toggleSort('role')}>
+              Vai trò {sortKey === 'role' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
+            </th>
+            <th>Hành động</th>
+>>>>>>> a97095c38f2510f165a15b5c9b1891a2466cecaa
           </tr>
         </thead>
         <tbody>
@@ -176,16 +213,24 @@ export function AdminPage({ user, onUserUpdate, onUserDelete, onLogout }) {
                       <option value="admin">Quản trị</option>
                     </select>
                   ) : (
+<<<<<<< HEAD
                     <span style={{
                       padding: '4px 12px', borderRadius: '100px', fontSize: '0.8rem', fontWeight: '700',
                       backgroundColor: u.role === 'admin' ? 'rgba(239, 68, 68, 0.1)' : u.role === 'staff' ? 'rgba(99, 102, 241, 0.1)' : 'rgba(16, 185, 129, 0.1)',
                       color: u.role === 'admin' ? 'var(--danger)' : u.role === 'staff' ? 'var(--primary)' : 'var(--success)',
                       border: `1px solid ${u.role === 'admin' ? 'var(--danger)' : u.role === 'staff' ? 'var(--primary)' : 'var(--success)'}`
+=======
+                    <span className={`badge badge--${u.role}`} style={{
+                      padding: '4px 8px', borderRadius: '4px', fontSize: '0.85em', fontWeight: '500',
+                      backgroundColor: u.role === 'admin' ? '#ffebee' : u.role === 'staff' ? '#e3f2fd' : '#e8f5e9',
+                      color: u.role === 'admin' ? '#c62828' : u.role === 'staff' ? '#1565c0' : '#2e7d32'
+>>>>>>> a97095c38f2510f165a15b5c9b1891a2466cecaa
                     }}>
                       {u.role === 'admin' ? 'Quản trị' : u.role === 'staff' ? 'Nhân viên' : 'Khách hàng'}
                     </span>
                   )}
                 </td>
+<<<<<<< HEAD
                 <td style={{ padding: '15px' }}>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     {isEditing ? (
@@ -200,6 +245,28 @@ export function AdminPage({ user, onUserUpdate, onUserDelete, onLogout }) {
                       </>
                     )}
                   </div>
+=======
+                <td className="adminPage__actions">
+                  {isEditing ? (
+                    <>
+                      <button className="button" onClick={() => saveEdit(u.email)}>
+                        Lưu
+                      </button>
+                      <button className="button button--secondary" onClick={cancelEditing}>
+                        Hủy
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button className="button" onClick={() => startEditing(u)}>
+                        Sửa
+                      </button>
+                      <button className="button button--danger" onClick={() => removeUser(u.email)}>
+                        Xóa
+                      </button>
+                    </>
+                  )}
+>>>>>>> a97095c38f2510f165a15b5c9b1891a2466cecaa
                 </td>
               </tr>
             )

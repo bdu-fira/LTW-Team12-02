@@ -58,7 +58,41 @@ try {
   console.error(
     '⚠️ Could not initialize MySQL database. Data will not be loaded successfully.',
   )
+<<<<<<< HEAD
   console.error(error.message)
+=======
+  console.warn(error.message)
+  useMemoryStore = true
+  memoryProducts = [
+    {
+      id: 1,
+      name: 'Tai nghe bluetooth ANC',
+      price: 1290000,
+      image: 'https://picsum.photos/seed/earbuds/400/300',
+      description: 'Tai nghe không dây chống ồn chủ động, pin 30h, sạc nhanh.',
+      category: 'TV & Âm thanh',
+      created_at: new Date().toISOString(),
+    },
+    {
+      id: 2,
+      name: 'Smartwatch thể thao',
+      price: 1890000,
+      image: 'https://picsum.photos/seed/smartwatch/400/300',
+      description: 'Đo nhịp tim, theo dõi giấc ngủ, chống nước 5ATM.',
+      category: 'Thiết bị gia dụng',
+      created_at: new Date().toISOString(),
+    },
+    {
+      id: 3,
+      name: 'Loa Bluetooth di động',
+      price: 990000,
+      image: 'https://picsum.photos/seed/speaker/400/300',
+      description: 'Âm thanh 20W, pin 15 giờ, kết nối nhanh qua NFC.',
+      category: 'TV & Âm thanh',
+      created_at: new Date().toISOString(),
+    },
+  ]
+>>>>>>> a97095c38f2510f165a15b5c9b1891a2466cecaa
 }
 
 app.get('/api/products', async (req, res) => {
@@ -77,6 +111,24 @@ app.post('/api/products', async (req, res) => {
     return res.status(400).json({ error: 'name and price are required' })
   }
 
+<<<<<<< HEAD
+=======
+  if (useMemoryStore) {
+    const nextId = memoryProducts.reduce((max, item) => Math.max(max, item.id), 0) + 1
+    const product = {
+      id: nextId,
+      name,
+      price: Number(price),
+      image: image || '',
+      description: description || '',
+      category: category || 'Khác',
+      created_at: new Date().toISOString(),
+    }
+    memoryProducts.unshift(product)
+    return res.status(201).json(product)
+  }
+
+>>>>>>> a97095c38f2510f165a15b5c9b1891a2466cecaa
   try {
     const [result] = await pool.query(
       'INSERT INTO products (name, price, image, description, category) VALUES (?, ?, ?, ?, ?)',
@@ -100,6 +152,25 @@ app.put('/api/products/:id', async (req, res) => {
     return res.status(400).json({ error: 'id, name và price là bắt buộc' })
   }
 
+<<<<<<< HEAD
+=======
+  if (useMemoryStore) {
+    const idx = memoryProducts.findIndex((item) => item.id === numericId)
+    if (idx === -1) {
+      return res.status(404).json({ error: 'Không tìm thấy sản phẩm' })
+    }
+    memoryProducts[idx] = {
+      ...memoryProducts[idx],
+      name,
+      price: Number(price),
+      image: image || '',
+      description: description || '',
+      category: category || 'Khác',
+    }
+    return res.json(memoryProducts[idx])
+  }
+
+>>>>>>> a97095c38f2510f165a15b5c9b1891a2466cecaa
   try {
     await pool.query(
       'UPDATE products SET name = ?, price = ?, image = ?, description = ?, category = ? WHERE id = ?',
