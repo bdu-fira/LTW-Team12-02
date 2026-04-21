@@ -75,6 +75,13 @@ export function AuthPage({ onAuth, user, onLogout }) {
               </label>
             )}
 
+            {mode === 'register' && (
+              <label className="authPage__label">
+                Họ và tên
+                <input name="name" type="text" placeholder="Nguyễn Văn A" required />
+              </label>
+            )}
+
             <label className="authPage__label">
               Email
               <input name="email" type="email" placeholder="example@email.com" required />
