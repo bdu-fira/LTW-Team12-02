@@ -21,6 +21,8 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('')
   const [appliedSearchTerm, setAppliedSearchTerm] = useState('')
   const [activeCategory, setActiveCategory] = useState('Tất cả')
+  const [priceRange, setPriceRange] = useState('all')
+  const [sortBy, setSortBy] = useState('default')
 
   const cartCount = useMemo(
     () => {
@@ -203,6 +205,10 @@ function App() {
       result = result.filter(p => p.category === activeCategory)
     }
 
+    if (priceRange === 'under5') result = result.filter(p => p.price < 5000000)
+    else if (priceRange === '5to15') result = result.filter(p => p.price >= 5000000 && p.price <= 15000000)
+    else if (priceRange === 'over15') result = result.filter(p => p.price > 15000000)
+
     if (term) {
       result = result.filter((p) => {
         const title = String(p.name || '').toLowerCase()
@@ -210,8 +216,13 @@ function App() {
         return title.includes(term) || desc.includes(term)
       })
     }
+
+    if (sortBy === 'priceAsc') result.sort((a, b) => a.price - b.price)
+    else if (sortBy === 'priceDesc') result.sort((a, b) => b.price - a.price)
+    else if (sortBy === 'sold') result.sort((a, b) => (b.sold_count || 0) - (a.sold_count || 0))
+
     return result
-  }, [products, appliedSearchTerm, activeCategory])
+  }, [products, appliedSearchTerm, activeCategory, priceRange, sortBy])
 
   const openAddProduct = () => {
     navigate('/staff')
@@ -275,17 +286,31 @@ function App() {
               <Brands />
               <main className="main container">
                 <section className="products">
-                  <header className="products__header" style={{ marginBottom: '40px', textAlign: 'left' }}>
+                  <header className="products__header" style={{ marginBottom: '20px', textAlign: 'left' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '20px' }}>
                       <div>
                         <h2 style={{ fontSize: '2rem', marginBottom: '8px' }}>Sản phẩm nổi bật</h2>
                         <p style={{ color: 'var(--text-muted)' }}>Khám phá các thiết bị công nghệ mới nhất hiện nay.</p>
                       </div>
-                      {(currentUser?.role === 'admin' || currentUser?.role === 'staff') && (
-                        <button className="button-3d" onClick={openAddProduct}>
-                          + Thêm sản phẩm
-                        </button>
-                      )}
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <select className="header__search-input" style={{ width: 'auto', padding: '10px 16px' }} value={priceRange} onChange={e => setPriceRange(e.target.value)}>
+                          <option value="all">Mức giá: Tất cả</option>
+                          <option value="under5">Dưới 5 triệu</option>
+                          <option value="5to15">Từ 5 - 15 triệu</option>
+                          <option value="over15">Trên 15 triệu</option>
+                        </select>
+                        <select className="header__search-input" style={{ width: 'auto', padding: '10px 16px' }} value={sortBy} onChange={e => setSortBy(e.target.value)}>
+                          <option value="default">Sắp xếp: Mặc định</option>
+                          <option value="priceAsc">Giá tăng dần</option>
+                          <option value="priceDesc">Giá giảm dần</option>
+                          <option value="sold">Bán chạy nhất</option>
+                        </select>
+                        {(currentUser?.role === 'admin' || currentUser?.role === 'staff') && (
+                          <button className="button-3d" onClick={openAddProduct}>
+                            + Thêm sản phẩm
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </header>
 

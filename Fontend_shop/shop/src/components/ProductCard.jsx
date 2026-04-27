@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import './ProductCard.css'
+import { Reviews } from './Reviews'
 
 export function ProductCard({ product, onAdd, onDelete }) {
   const [isExpanded, setIsExpanded] = useState(false)
+  const [showReviews, setShowReviews] = useState(false)
   const imageUrl = String(product?.image || '') || 'https://via.placeholder.com/360x240?text=No+Image'
 
   const MAX_LENGTH = 80
@@ -47,9 +49,15 @@ export function ProductCard({ product, onAdd, onDelete }) {
           )}
         </p>
 
-        <div className="productCard__stats" style={{ display: 'flex', gap: '12px', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '10px' }}>
+        <div className="productCard__stats" style={{ display: 'flex', gap: '12px', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '10px', alignItems: 'center' }}>
           <span>📈 Đã bán: <strong>{product.sold_count || 0}</strong></span>
           <span>📦 Còn lại: <strong style={{ color: (product.stock_count || 0) < 5 ? 'var(--danger)' : 'inherit' }}>{product.stock_count || 0}</strong></span>
+          <span 
+            style={{ marginLeft: 'auto', cursor: 'pointer', color: '#f59e0b', fontWeight: 'bold' }}
+            onClick={(e) => { e.stopPropagation(); setShowReviews(true); }}
+          >
+            ⭐⭐⭐⭐⭐
+          </span>
         </div>
         
         <div className="productCard__footer">
@@ -84,6 +92,12 @@ export function ProductCard({ product, onAdd, onDelete }) {
           </div>
         </div>
       </div>
+      {showReviews && (
+        <Reviews 
+          product={product} 
+          onClose={(e) => { e?.stopPropagation(); setShowReviews(false); }} 
+        />
+      )}
     </article>
   )
 }
