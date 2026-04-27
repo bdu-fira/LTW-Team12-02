@@ -1,57 +1,52 @@
-# React Shop (Vite)
+# Hệ thống Bán hàng LTW-Team12-02
 
-Trang web bán hàng mẫu bằng **React + Vite**, giao diện tiếng Việt.
+Dự án lập trình Web bao gồm cả **Frontend (React + Vite)** và **Backend (Node.js + Express + MySQL)**.
 
-## ✅ Tính năng
+## 📂 Máy chủ Backend (Node.js & MySQL)
 
-- Danh sách sản phẩm với hình ảnh và giá
-- Giỏ hàng có thể tăng/giảm số lượng
-- Giỏ hàng lưu bên trong **localStorage**
-- Responsive hiển thị tốt trên desktop + mobile
+Phụ trách xử lý dữ liệu, chứng thực và cung cấp API.
 
-## 🚀 Chạy trên máy
+### ⚙️ Yêu cầu & Cài đặt
+1. Cài đặt các thư viện Node.js:
+   ```bash
+   cd backend_shop
+   npm install
+   ```
+2. Cấu hình Cơ sở dữ liệu:
+   - Import dữ liệu vào MySQL (tùy chọn theo cấu hình nhóm).
+   - Thiết lập cấu hình cơ sở dữ liệu bên trong logic hệ thống (`src/config/`).
+3. Chạy Server:
+   ```bash
+   npm run dev      # Hoặc: node server.js
+   ```
+   > 🔴 Server mặc định chạy tại `http://localhost:5000`
 
-```bash
-cd shop
-npm install
-npm run dev
-```
+## 🎨 Trình duyệt Frontend (React + Vite)
 
-Mở trình duyệt tới địa chỉ được hiện trong terminal (thường là `http://cio:5173`).
+Giao diện mua sắm hiển thị cho Khách hàng và bộ máy Quản lý.
 
-## 📡 Chạy API server (MySQL)
+### ⚙️ Yêu cầu & Cài đặt
+1. Cài đặt các module cho React:
+   ```bash
+   cd Fontend_shop/shop
+   npm install
+   ```
+2. Chạy ứng dụng Frontend:
+   ```bash
+   npm run dev
+   ```
+   > 🟢 Trình duyệt sẽ mở tại `http://localhost:5173`
 
-Project đã có một API server nhỏ dùng **Express + MySQL** để lưu sản phẩm. Để chạy được, bạn cần:
+## 🧩 Cấu trúc Project Chính
 
-1. Cài MySQL và tạo database (mặc định là `shop`).
-2. Copy `./.env.example` thành `./.env` và điền thông tin kết nối. Bạn có thể dùng connection string (ví dụ `mysql://user:pass@host:port/db`) bằng cách set `DATABASE_URL` hoặc `MYSQL_URL`.
-3. Chạy:
+- `backend_shop/`
+  - `src/controllers/` – Các hàm xử lý API
+  - `src/router/` – Định tuyến API (Auth, Product, Order, Review)
+  - `src/services/` – Gọi CSDL, tính toán dữ liệu
+- `Fontend_shop/shop/`
+  - `src/components/` – Các module giao diện (Hero, FlashSale, Footer, Reviews...)
+  - `src/data/` – Dữ liệu tĩnh hoặc hook tùy chỉnh
+  - `src/App.jsx` – Cấu trúc chính của giao diện
 
-```bash
-npm run server
-```
-
-Hoặc chạy đồng thời frontend + backend:
-
-```bash
-npm run start
-```
-
-Sau khi server chạy, frontend sẽ gọi API tại `http://localhost:4000/api/products` để lấy và thêm sản phẩm.
-
-## 🧪 Build sản phẩm
-
-```bash
-npm run build
-```
-
-Kết quả build nằm trong thư mục `dist/`.
-
-## 🧩 Cấu trúc project
-
-- `src/App.jsx` – giao diện chính và logic giỏ hàng
-- `src/components/Cart.jsx` – panel giỏ hàng
-- `src/components/ProductCard.jsx` – card sản phẩm
-- `src/data/products.js` – dữ liệu sản phẩm mẫu
-- `src/hooks/useLocalStorage.js` – hook lưu trạng thái vào localStorage
-"# LTW-Team12-02" 
+## 📝 Chú ý
+Toàn bộ mã nguồn đã được tách biệt giữa Backend và Frontend để tiện phát triển và tích hợp với cơ sở dữ liệu. Vui lòng chạy 2 terminal song song khi cần tương tác API.
