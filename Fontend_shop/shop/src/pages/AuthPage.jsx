@@ -10,6 +10,7 @@ export function AuthPage({ onAuth, user, onLogout }) {
   const navigate = useNavigate()
 
   const [formError, setFormError] = useState('')
+  const [successMsg, setSuccessMsg] = useState('')
 
   const handleSubmit = (event) => {
     event.preventDefault()
@@ -26,13 +27,20 @@ export function AuthPage({ onAuth, user, onLogout }) {
 
     onAuth({ email, password, name, mode })
       .then((user) => {
-        if (user?.role === 'admin') {
-          navigate('/admin')
-        } else if (user?.role === 'staff') {
-          navigate('/staff')
-        } else {
-          navigate('/')
-        }
+        const msg =
+          mode === 'register'
+            ? '🎉 Đăng ký thành công! Chào mừng bạn!'
+            : '✅ Đăng nhập thành công! Đang chuyển trang...'
+        setSuccessMsg(msg)
+        setTimeout(() => {
+          if (user?.role === 'admin') {
+            navigate('/admin')
+          } else if (user?.role === 'staff') {
+            navigate('/staff')
+          } else {
+            navigate('/')
+          }
+        }, 1500)
       })
       .catch((err) => {
         setFormError(err.message || 'Có lỗi xảy ra. Vui lòng thử lại.')
@@ -72,6 +80,7 @@ export function AuthPage({ onAuth, user, onLogout }) {
           </div>
         ) : (
           <form className="authPage__form" onSubmit={handleSubmit}>
+            {successMsg && <div className="authPage__success">{successMsg}</div>}
             {formError && <div className="authPage__error">{formError}</div>}
 
             {mode === 'register' && (

@@ -1,16 +1,17 @@
 import { useState } from 'react'
 import './Cart.css'
 
-export function Cart({ items, onUpdateQuantity, onRemove, onClear }) {
+export function Cart({ user, items, onUpdateQuantity, onRemove, onClear }) {
   const [isCheckout, setIsCheckout] = useState(false)
   const [formData, setFormData] = useState({
-    name: '',
+    name: user?.name || '',
     address: '',
     phone: '',
     notes: '',
     paymentMethod: 'cash'
   })
   const [orderSuccess, setOrderSuccess] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const total = items.reduce((sum, item) => sum + item.quantity * item.price, 0)
 
@@ -22,18 +23,45 @@ export function Cart({ items, onUpdateQuantity, onRemove, onClear }) {
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmitOrder = (e) => {
+  const handleSubmitOrder = async (e) => {
     e.preventDefault()
     if (!formData.name || !formData.address || !formData.phone) {
       alert("Vui lòng điền đầy đủ thông tin bắt buộc!");
       return;
     }
-    setOrderSuccess(true)
-    setTimeout(() => {
-      onClear()
-      setOrderSuccess(false)
-      setIsCheckout(false)
-    }, 3000)
+
+    setIsSubmitting(true)
+
+    try {
+      const orderPayload = {
+        user_email: user?.email || 'guest@shop.com',
+        customer_name: formData.name,
+        phone: formData.phone,
+        address: formData.address,
+        total: total,
+        payment_method: formData.paymentMethod,
+        items: items
+      }
+
+      const res = await fetch('http://localhost:4000/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderPayload)
+      })
+
+      if (!res.ok) throw new Error('Failed to place order')
+
+      setOrderSuccess(true)
+      setTimeout(() => {
+        onClear()
+        setOrderSuccess(false)
+        setIsCheckout(false)
+      }, 3000)
+    } catch (err) {
+      alert('Có lỗi xảy ra khi đặt hàng: ' + err.message)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   if (orderSuccess) {
@@ -104,8 +132,8 @@ export function Cart({ items, onUpdateQuantity, onRemove, onClear }) {
                 })}
               </span>
             </div>
-            <button type="submit" className="button-3d" style={{ width: '100%' }}>
-              Xác nhận Đặt hàng
+            <button type="submit" className="button-3d" style={{ width: '100%' }} disabled={isSubmitting}>
+              {isSubmitting ? 'Đang xử lý...' : 'Xác nhận Đặt hàng'}
             </button>
           </div>
         </form>

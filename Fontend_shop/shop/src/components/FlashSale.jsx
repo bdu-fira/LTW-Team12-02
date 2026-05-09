@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './FlashSale.css';
 
 export function FlashSale({ products = [] }) {
+  const navigate = useNavigate();
   const [timeLeft, setTimeLeft] = useState({
     hours: 5,
     minutes: 45,
     seconds: 30
   });
 
-  const flashSaleProducts = products.filter(p => p.is_flash_sale);
+  const flashSaleProducts = products.filter(p => p.is_flash_sale).slice(0, 3);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -74,7 +76,12 @@ export function FlashSale({ products = [] }) {
             const isLowStock = p.stock_count > 0 && p.stock_count < 5;
 
             return (
-              <div className="flash-sale__card" key={p.id}>
+              <div 
+                className="flash-sale__card" 
+                key={p.id} 
+                onClick={() => navigate(`/product/${p.id}`)}
+                style={{ cursor: 'pointer' }}
+              >
                 {discount > 0 && <div className="flash-sale__badge">-{discount}%</div>}
                 <img src={p.image || "https://picsum.photos/seed/placeholder/200/200"} alt={p.name} />
                 <h4 className="fs-name">{p.name}</h4>

@@ -11,6 +11,9 @@ import { AuthPage } from './pages/AuthPage'
 import { ProductCard } from './components/ProductCard'
 import { AdminPage } from './pages/AdminPage'
 import { StaffPage } from './pages/StaffPage'
+import { ProductDetailPage } from './pages/ProductDetailPage'
+import { PolicyPage } from './pages/PolicyPage'
+import { OrdersPage } from './pages/OrdersPage'
 import { useLocalStorage } from './hooks/useLocalStorage'
 
 function App() {
@@ -70,27 +73,6 @@ function App() {
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [currentUser, setCurrentUser] = useLocalStorage('shop-user', null)
 
-  useEffect(() => {
-    // Ensure admin user exists
-    try {
-      let users = JSON.parse(window.localStorage.getItem('shop-users') || '[]')
-      if (!Array.isArray(users)) users = []
-      
-      if (!users.find((u) => u?.email === 'admin@shop.com')) {
-        const admin = {
-          email: 'admin@shop.com',
-          password: 'admin',
-          name: 'Quản trị viên',
-          role: 'admin',
-          approved: true,
-        }
-        window.localStorage.setItem('shop-users', JSON.stringify([...users, admin]))
-      }
-    } catch(e) {
-      console.warn('Could not parse users', e)
-    }
-  }, [])
-
   const navigate = useNavigate()
   const location = useLocation()
   const openCart = () => setIsCartOpen(true)
@@ -106,47 +88,33 @@ function App() {
     }
   }
 
+  const openOrders = () => {
+    navigate('/orders')
+  }
+
   const handleLogout = () => {
     setCurrentUser(null)
     navigate('/')
   }
 
   const handleAuth = async ({ email, password, name, mode = 'login' }) => {
-    let users = []
-    try {
-      users = JSON.parse(window.localStorage.getItem('shop-users') || '[]')
-      if (!Array.isArray(users)) users = []
-    } catch(e) {}
+    const endpoint = mode === 'login' ? '/api/auth/login' : '/api/auth/register'
+    const payload = mode === 'login' ? { email, password } : { email, password, name }
 
-    if (mode === 'login') {
-      const found = users.find((u) => u.email === email && u.password === password)
-      if (found) {
-        setCurrentUser(found)
-        return found
-      }
+    const res = await fetch(`http://localhost:4000${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
 
-      throw new Error('Email hoặc mật khẩu không đúng.')
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}))
+      throw new Error(errData.error || 'Xác thực thất bại. Vui lòng thử lại.')
     }
 
-    // register
-    const exists = users.find((u) => u.email === email)
-    if (exists) {
-      throw new Error('Email đã được sử dụng, vui lòng đăng nhập.')
-    }
-
-    const newUser = {
-      email,
-      password,
-      name: name || email,
-      role: 'customer',
-      approved: true,
-    }
-
-    const next = [...users, newUser]
-    window.localStorage.setItem('shop-users', JSON.stringify(next))
-
-    setCurrentUser(null)
-    return newUser
+    const user = await res.json()
+    setCurrentUser(user)
+    return user
   }
 
   const fetchProducts = async () => {
@@ -267,6 +235,7 @@ function App() {
         onLoginClick={openLogin}
         onRegisterClick={openRegister}
         onManageClick={openManage}
+        onOrdersClick={openOrders}
         onLogout={handleLogout}
         user={currentUser}
         searchValue={searchTerm}
@@ -346,6 +315,18 @@ function App() {
           }
         />
         <Route
+          path="/product/:id"
+          element={<ProductDetailPage onAdd={addToCart} user={currentUser} />}
+        />
+        <Route
+          path="/policy/:type"
+          element={<PolicyPage />}
+        />
+        <Route
+          path="/orders"
+          element={<OrdersPage user={currentUser} />}
+        />
+        <Route
           path="/auth"
           element={
             <AuthPage onAuth={handleAuth} user={currentUser} onLogout={handleLogout} />
@@ -392,6 +373,7 @@ function App() {
             overflowY: 'auto'
           }} onClick={(e) => e.stopPropagation()}>
             <Cart
+              user={currentUser}
               items={Array.isArray(cart) ? cart : []}
               onUpdateQuantity={updateQuantity}
               onRemove={removeFromCart}

@@ -7,6 +7,7 @@ export function Header({
   onRegisterClick,
   onLogout,
   onManageClick,
+  onOrdersClick,
   user,
   searchValue,
   onSearchChange,
@@ -52,6 +53,9 @@ export function Header({
                 <span className="header__user-info" style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
                   Chào, <strong>{user.name}</strong>
                 </span>
+                <button className="button-3d secondary" style={{ padding: '8px 16px' }} onClick={onOrdersClick}>
+                  📦 Đơn hàng
+                </button>
                 <button className="button-3d secondary" style={{ padding: '8px 16px' }} onClick={onLogout}>
                   Đăng xuất
                 </button>

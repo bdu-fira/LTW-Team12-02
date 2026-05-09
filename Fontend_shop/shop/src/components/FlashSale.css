@@ -88,17 +88,22 @@
 }
 
 .flash-sale__card {
-  background: white;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   padding: 16px;
   position: relative;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
 }
 
 .flash-sale__card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--primary);
 }
 
 .flash-sale__badge {
@@ -117,13 +122,13 @@
 .flash-sale__card img {
   width: 100%;
   aspect-ratio: 1;
-  object-fit: contain;
+  object-fit: cover;
   border-radius: 8px;
   margin-bottom: 12px;
 }
 
 .fs-name {
-  color: var(--text-main);
+  color: #ffffff;
   font-size: 0.95rem;
   margin-bottom: 8px;
   line-height: 1.4;
@@ -146,7 +151,7 @@
 }
 
 .fs-old-price {
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.6);
   text-decoration: line-through;
   font-size: 0.85rem;
 }

@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import './ProductCard.css'
 import { Reviews } from './Reviews'
 
 export function ProductCard({ product, onAdd, onDelete }) {
+  const navigate = useNavigate()
   const [isExpanded, setIsExpanded] = useState(false)
   const [showReviews, setShowReviews] = useState(false)
   const imageUrl = String(product?.image || '') || 'https://via.placeholder.com/360x240?text=No+Image'
@@ -16,8 +18,12 @@ export function ProductCard({ product, onAdd, onDelete }) {
     setIsExpanded(!isExpanded)
   }
 
+  const handleCardClick = () => {
+    navigate(`/product/${product.id}`)
+  }
+
   return (
-    <article className="productCard">
+    <article className="productCard" onClick={handleCardClick} style={{ cursor: 'pointer' }}>
       <div className="productCard__image-container">
         <span className="productCard__category">
           {product.category || 'Khác'}
@@ -73,7 +79,10 @@ export function ProductCard({ product, onAdd, onDelete }) {
               type="button"
               className="button-3d"
               style={{ padding: '10px 16px', fontSize: '0.85rem' }}
-              onClick={() => onAdd(product)}
+              onClick={(e) => {
+                e.stopPropagation()
+                onAdd(product)
+              }}
               aria-label={`Thêm ${product.name} vào giỏ`}
             >
               🛒 Mua
@@ -84,7 +93,10 @@ export function ProductCard({ product, onAdd, onDelete }) {
                 type="button"
                 className="button-3d secondary"
                 style={{ padding: '10px 16px', fontSize: '0.85rem', color: 'var(--danger)' }}
-                onClick={() => onDelete(product.id)}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onDelete(product.id)
+                }}
               >
                 Xóa
               </button>

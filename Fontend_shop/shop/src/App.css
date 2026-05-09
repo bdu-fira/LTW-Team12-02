@@ -28,8 +28,12 @@ a {
   grid-template-columns: 1fr 1fr;
   gap: 28px;
   align-items: center;
-  padding: 40px clamp(20px, 4vw, 64px);
-  background: linear-gradient(135deg, rgba(124, 58, 237, 0.16), rgba(255, 255, 255, 0));
+  padding: 60px clamp(20px, 4vw, 64px);
+  margin: 24px clamp(16px, 4vw, 60px);
+  border-radius: 32px;
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.16), rgba(124, 58, 237, 0.05));
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(255,255,255,0.05);
 }
 
 .hero__copy {

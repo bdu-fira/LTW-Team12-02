@@ -4,14 +4,16 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev:vite": "vite",
+    "dev": "npm-run-all --parallel dev:vite server",
     "build": "vite build",
     "preview": "vite preview",
     "server": "node server/index.js",
-    "start": "npm-run-all --parallel dev server"
+    "start": "npm-run-all --parallel dev:vite server"
   },
   "dependencies": {
     "antd": "^6.3.5",
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",

@@ -3,99 +3,169 @@ import { useNavigate } from 'react-router-dom'
 import './AdminPage.css'
 
 export function AdminPage({ user, onUserUpdate, onUserDelete, onLogout }) {
-  const [users, setUsers] = useState([])
   const navigate = useNavigate()
-  const [filter, setFilter] = useState('')
-  const [sortKey, setSortKey] = useState('email')
-  const [sortDir, setSortDir] = useState('asc')
+  const [activeTab, setActiveTab] = useState('users') // 'users', 'products', 'orders'
+
+  // Users State
+  const [users, setUsers] = useState([])
+  const [userFilter, setUserFilter] = useState('')
+  const [userSortKey, setUserSortKey] = useState('email')
+  const [userSortDir, setUserSortDir] = useState('asc')
   const [editingEmail, setEditingEmail] = useState(null)
-  const [editForm, setEditForm] = useState({ name: '', role: '' })
+  const [editUserForm, setEditUserForm] = useState({ name: '', role: '' })
+
+  // Products State
+  const [products, setProducts] = useState([])
+  const [productFilter, setProductFilter] = useState('')
+  const [editingProductId, setEditingProductId] = useState(null)
+  const [editProductForm, setEditProductForm] = useState({
+    name: '', price: 0, old_price: '', category: '', stock_count: 0, image: '', is_flash_sale: false, description: ''
+  })
+  const [showProductModal, setShowProductModal] = useState(false)
+
+  // Orders State
+  const [orders, setOrders] = useState([])
+  const [orderFilter, setOrderFilter] = useState('')
 
   useEffect(() => {
-    loadUsers()
-  }, [])
-
-  const loadUsers = () => {
-    try {
-      const usersList = JSON.parse(window.localStorage.getItem('shop-users') || '[]')
-      setUsers(Array.isArray(usersList) ? usersList : [])
-    } catch(e) {
-      setUsers([])
+    if (user?.role === 'admin') {
+      loadUsers()
+      loadProducts()
+      loadOrders()
     }
+  }, [user])
+
+  // ================= USERS LOGIC =================
+  const loadUsers = async () => {
+    try {
+      const res = await fetch('http://localhost:4000/api/users')
+      if (res.ok) setUsers(await res.json())
+    } catch(e) { console.error(e) }
   }
 
-  const saveUsers = (next) => {
-    window.localStorage.setItem('shop-users', JSON.stringify(next))
-    setUsers(next)
+  const saveUserEdit = async (email) => {
+    try {
+      const res = await fetch(`http://localhost:4000/api/users/${email}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: editUserForm.name, role: editUserForm.role })
+      })
+      if (!res.ok) throw new Error('Failed')
+      const updated = await res.json()
+      setUsers(prev => prev.map(u => u.email === email ? { ...u, name: updated.name, role: updated.role } : u))
+      if (onUserUpdate) onUserUpdate(email)
+      setEditingEmail(null)
+    } catch (e) { alert('Lỗi: ' + e.message) }
+  }
+
+  const removeUser = async (email) => {
+    if (!window.confirm('Xóa tài khoản này?')) return
+    if (email === user?.email) return alert('Không thể xóa chính mình.')
+    try {
+      await fetch(`http://localhost:4000/api/users/${email}`, { method: 'DELETE' })
+      setUsers(prev => prev.filter(u => u.email !== email))
+      if (onUserDelete) onUserDelete(email)
+    } catch (e) { alert('Lỗi: ' + e.message) }
   }
 
   const filteredUsers = useMemo(() => {
-    const term = filter.trim().toLowerCase()
-    return users
-      .filter((u) =>
-        !term ||
-        u.email.toLowerCase().includes(term) ||
-        (u.name || '').toLowerCase().includes(term),
-      )
+    const term = userFilter.trim().toLowerCase()
+    return users.filter(u => !term || u.email.toLowerCase().includes(term) || (u.name || '').toLowerCase().includes(term))
       .sort((a, b) => {
-        const dir = sortDir === 'asc' ? 1 : -1
-        const valA = String(a[sortKey] ?? '').toLowerCase()
-        const valB = String(b[sortKey] ?? '').toLowerCase()
-        if (valA < valB) return -1 * dir
-        if (valA > valB) return 1 * dir
-        return 0
+        const dir = userSortDir === 'asc' ? 1 : -1
+        return String(a[userSortKey] ?? '').toLowerCase() > String(b[userSortKey] ?? '').toLowerCase() ? dir : -dir
       })
-  }, [users, filter, sortKey, sortDir])
+  }, [users, userFilter, userSortKey, userSortDir])
 
-  const toggleSort = (key) => {
-    if (sortKey === key) {
-      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+
+  // ================= PRODUCTS LOGIC =================
+  const loadProducts = async () => {
+    try {
+      const res = await fetch('http://localhost:4000/api/products')
+      if (res.ok) setProducts(await res.json())
+    } catch(e) { console.error(e) }
+  }
+
+  const openProductModal = (p = null) => {
+    if (p) {
+      setEditingProductId(p.id)
+      setEditProductForm({
+        name: p.name, price: p.price, old_price: p.old_price || '', category: p.category || '', 
+        stock_count: p.stock_count || 0, image: p.image || '', is_flash_sale: !!p.is_flash_sale, description: p.description || ''
+      })
+    } else {
+      setEditingProductId(null)
+      setEditProductForm({ name: '', price: 0, old_price: '', category: '', stock_count: 0, image: '', is_flash_sale: false, description: '' })
+    }
+    setShowProductModal(true)
+  }
+
+  const saveProduct = async (e) => {
+    e.preventDefault()
+    // Validate: tên sản phẩm không được là URL
+    if (!editProductForm.name || editProductForm.name.trim().startsWith('http')) {
+      alert('Tên sản phẩm không hợp lệ. Vui lòng nhập tên thực.')
       return
     }
-    setSortKey(key)
-    setSortDir('asc')
-  }
-
-  const startEditing = (user) => {
-    setEditingEmail(user.email)
-    setEditForm({
-      name: user.name || '',
-      role: user.role || 'customer',
-    })
-  }
-
-  const cancelEditing = () => {
-    setEditingEmail(null)
-    setEditForm({ name: '', role: '' })
-  }
-
-  const saveEdit = (email) => {
-    const next = users.map((u) => {
-      if (u.email !== email) return u
-      const updated = {
-        ...u,
-        name: editForm.name,
-        role: editForm.role,
-        approved: true,
-      }
-      return updated
-    })
-    saveUsers(next)
-    if (onUserUpdate) onUserUpdate(email)
-    cancelEditing()
-  }
-
-  const removeUser = (email) => {
-    if (!window.confirm('Xóa tài khoản này?')) return
-    if (email === user?.email) {
-      alert('Bạn không thể xóa chính mình.')
+    if (!editProductForm.price || Number(editProductForm.price) <= 0) {
+      alert('Giá sản phẩm phải lớn hơn 0.')
       return
     }
-    const next = users.filter((u) => u.email !== email)
-    saveUsers(next)
-    if (onUserDelete) onUserDelete(email)
+    try {
+      const method = editingProductId ? 'PUT' : 'POST'
+      const url = `http://localhost:4000/api/products${editingProductId ? `/${editingProductId}` : ''}`
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editProductForm)
+      })
+      if (!res.ok) throw new Error('Failed')
+      loadProducts()
+      setShowProductModal(false)
+    } catch (e) { alert('Lỗi: ' + e.message) }
   }
 
+  const deleteProduct = async (id) => {
+    if (!window.confirm('Xóa sản phẩm này?')) return
+    try {
+      await fetch(`http://localhost:4000/api/products/${id}`, { method: 'DELETE' })
+      loadProducts()
+    } catch (e) { alert('Lỗi: ' + e.message) }
+  }
+
+  const filteredProducts = useMemo(() => {
+    const term = productFilter.trim().toLowerCase()
+    return products.filter(p => !term || p.name.toLowerCase().includes(term) || (p.category || '').toLowerCase().includes(term))
+  }, [products, productFilter])
+
+
+  // ================= ORDERS LOGIC =================
+  const loadOrders = async () => {
+    try {
+      const res = await fetch('http://localhost:4000/api/orders')
+      if (res.ok) setOrders(await res.json())
+    } catch(e) { console.error(e) }
+  }
+
+  const updateOrderStatus = async (id, status) => {
+    try {
+      const res = await fetch(`http://localhost:4000/api/orders/${id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      })
+      if (!res.ok) throw new Error('Failed')
+      loadOrders()
+    } catch (e) { alert('Lỗi: ' + e.message) }
+  }
+
+  const filteredOrders = useMemo(() => {
+    const term = orderFilter.trim().toLowerCase()
+    return orders.filter(o => !term || String(o.id).includes(term) || (o.customer_name || '').toLowerCase().includes(term) || (o.phone || '').includes(term))
+  }, [orders, orderFilter])
+
+
+  // ================= RENDER =================
   if (!user || user.role !== 'admin') {
     return (
       <main className="adminPage container" style={{ textAlign: 'center', padding: '100px 0' }}>
@@ -107,112 +177,229 @@ export function AdminPage({ user, onUserUpdate, onUserDelete, onLogout }) {
   }
 
   return (
-    <main className="adminPage container" style={{ padding: '60px 0' }}>
-      <header className="adminPage__header" style={{ marginBottom: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '20px' }}>
+    <main className="adminPage container" style={{ padding: '40px 0' }}>
+      <header className="adminPage__header" style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '20px' }}>
         <div>
           <h1 style={{ fontSize: '2.5rem', marginBottom: '8px' }}>Quản trị hệ thống</h1>
-          <p style={{ color: 'var(--text-muted)' }}>Quản lý tài khoản người dùng và phân quyền truy cập.</p>
+          <p style={{ color: 'var(--text-muted)' }}>Quản lý Tài khoản, Sản phẩm và Đơn hàng.</p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
-          <button className="button-3d secondary" onClick={() => navigate('/')}>
-            ⬅ Trang chủ
-          </button>
-          <button className="button-3d" onClick={onLogout}>
-            Đăng xuất
-          </button>
+          <button className="button-3d secondary" onClick={() => navigate('/')}>⬅ Trang chủ</button>
+          <button className="button-3d" onClick={onLogout}>Đăng xuất</button>
         </div>
       </header>
 
-      <div className="adminPage__toolbar" style={{ marginBottom: '30px' }}>
-        <input
-          className="header__search-input"
-          style={{ maxWidth: '400px' }}
-          placeholder="Tìm user theo email hoặc tên..."
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-        />
+      <div className="adminPage__tabs" style={{ display: 'flex', gap: '10px', marginBottom: '30px', borderBottom: '2px solid var(--border)', paddingBottom: '10px' }}>
+        <button className={`admin-tab ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')}>👥 Người dùng</button>
+        <button className={`admin-tab ${activeTab === 'products' ? 'active' : ''}`} onClick={() => setActiveTab('products')}>🛒 Sản phẩm</button>
+        <button className={`admin-tab ${activeTab === 'orders' ? 'active' : ''}`} onClick={() => setActiveTab('orders')}>📦 Đơn hàng</button>
       </div>
 
-      <div className="adminPage__tableWrapper glass" style={{ borderRadius: '24px', padding: '20px', overflowX: 'auto', border: '1px solid var(--border)' }}>
-      <table className="adminPage__table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-        <thead>
-          <tr style={{ borderBottom: '2px solid var(--border)' }}>
-            <th style={{ padding: '15px' }}>STT</th>
-            <th style={{ padding: '15px', cursor: 'pointer' }} onClick={() => toggleSort('email')}>
-              Email {sortKey === 'email' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
-            </th>
-            <th style={{ padding: '15px', cursor: 'pointer' }} onClick={() => toggleSort('name')}>
-              Họ tên {sortKey === 'name' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
-            </th>
-            <th style={{ padding: '15px', cursor: 'pointer' }} onClick={() => toggleSort('role')}>
-              Vai trò {sortKey === 'role' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
-            </th>
-            <th style={{ padding: '15px' }}>Hành động</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredUsers.map((u, idx) => {
-            const isEditing = editingEmail === u.email
-            return (
-              <tr key={u.email} style={{ borderBottom: '1px solid var(--border)' }}>
-                <td style={{ padding: '15px' }}>{idx + 1}</td>
-                <td style={{ padding: '15px' }}>{u.email}</td>
-                <td style={{ padding: '15px' }}>
-                  {isEditing ? (
-                    <input
-                      className="header__search-input"
-                      style={{ padding: '6px 12px' }}
-                      value={editForm.name}
-                      onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))}
-                    />
-                  ) : (
-                    u.name || '---'
-                  )}
-                </td>
-                <td style={{ padding: '15px' }}>
-                  {isEditing ? (
-                    <select
-                      className="header__search-input"
-                      style={{ padding: '6px 12px' }}
-                      value={editForm.role}
-                      onChange={(e) => setEditForm((p) => ({ ...p, role: e.target.value }))}
-                    >
-                      <option value="customer">Khách hàng</option>
-                      <option value="staff">Nhân viên</option>
-                      <option value="admin">Quản trị</option>
-                    </select>
-                  ) : (
-                    <span style={{
-                      padding: '4px 12px', borderRadius: '100px', fontSize: '0.8rem', fontWeight: '700',
-                      backgroundColor: u.role === 'admin' ? 'rgba(239, 68, 68, 0.1)' : u.role === 'staff' ? 'rgba(99, 102, 241, 0.1)' : 'rgba(16, 185, 129, 0.1)',
-                      color: u.role === 'admin' ? 'var(--danger)' : u.role === 'staff' ? 'var(--primary)' : 'var(--success)',
-                      border: `1px solid ${u.role === 'admin' ? 'var(--danger)' : u.role === 'staff' ? 'var(--primary)' : 'var(--success)'}`
-                    }}>
-                      {u.role === 'admin' ? 'Quản trị' : u.role === 'staff' ? 'Nhân viên' : 'Khách hàng'}
-                    </span>
-                  )}
-                </td>
-                <td style={{ padding: '15px' }}>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    {isEditing ? (
-                      <>
-                        <button className="button-3d" style={{ padding: '8px 12px', fontSize: '0.8rem' }} onClick={() => saveEdit(u.email)}>Lưu</button>
-                        <button className="button-3d secondary" style={{ padding: '8px 12px', fontSize: '0.8rem' }} onClick={cancelEditing}>Hủy</button>
-                      </>
-                    ) : (
-                      <>
-                        <button className="button-3d secondary" style={{ padding: '8px 12px', fontSize: '0.8rem' }} onClick={() => startEditing(u)}>Sửa</button>
-                        <button className="button-3d secondary" style={{ padding: '8px 12px', fontSize: '0.8rem', color: 'var(--danger)' }} onClick={() => removeUser(u.email)}>Xóa</button>
-                      </>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-      </div>
+      {/* TABS CONTENT */}
+      {activeTab === 'users' && (
+        <div className="adminPage__content">
+          <div className="adminPage__toolbar" style={{ marginBottom: '20px' }}>
+            <input className="header__search-input" style={{ maxWidth: '400px' }} placeholder="Tìm theo email hoặc tên..." value={userFilter} onChange={(e) => setUserFilter(e.target.value)} />
+          </div>
+          <div className="adminPage__tableWrapper glass" style={{ borderRadius: '16px', padding: '20px', overflowX: 'auto', border: '1px solid var(--border)' }}>
+            <table className="adminPage__table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid var(--border)' }}>
+                  <th style={{ padding: '15px' }}>Email</th>
+                  <th style={{ padding: '15px' }}>Họ tên</th>
+                  <th style={{ padding: '15px' }}>Vai trò</th>
+                  <th style={{ padding: '15px' }}>Hành động</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredUsers.map((u) => {
+                  const isEditing = editingEmail === u.email
+                  return (
+                    <tr key={u.email} style={{ borderBottom: '1px solid var(--border)' }}>
+                      <td style={{ padding: '15px' }}>{u.email}</td>
+                      <td style={{ padding: '15px' }}>
+                        {isEditing ? <input className="header__search-input" style={{ padding: '6px 12px' }} value={editUserForm.name} onChange={(e) => setEditUserForm(p => ({ ...p, name: e.target.value }))} /> : (u.name || '---')}
+                      </td>
+                      <td style={{ padding: '15px' }}>
+                        {isEditing ? (
+                          <select className="header__search-input" style={{ padding: '6px 12px' }} value={editUserForm.role} onChange={(e) => setEditUserForm(p => ({ ...p, role: e.target.value }))}>
+                            <option value="user">Khách hàng</option>
+                            <option value="admin">Quản trị</option>
+                          </select>
+                        ) : (
+                          <span className={`role-badge role-${u.role}`}>{u.role === 'admin' ? 'Quản trị' : 'Khách hàng'}</span>
+                        )}
+                      </td>
+                      <td style={{ padding: '15px' }}>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          {isEditing ? (
+                            <>
+                              <button className="button-3d" style={{ padding: '6px 12px', fontSize: '0.8rem' }} onClick={() => saveUserEdit(u.email)}>Lưu</button>
+                              <button className="button-3d secondary" style={{ padding: '6px 12px', fontSize: '0.8rem' }} onClick={() => setEditingEmail(null)}>Hủy</button>
+                            </>
+                          ) : (
+                            <>
+                              <button className="button-3d secondary" style={{ padding: '6px 12px', fontSize: '0.8rem' }} onClick={() => { setEditingEmail(u.email); setEditUserForm({ name: u.name, role: u.role }) }}>Sửa</button>
+                              <button className="button-3d secondary" style={{ padding: '6px 12px', fontSize: '0.8rem', color: 'var(--danger)' }} onClick={() => removeUser(u.email)}>Xóa</button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'products' && (
+        <div className="adminPage__content">
+          <div className="adminPage__toolbar" style={{ marginBottom: '20px', display: 'flex', gap: '15px', justifyContent: 'space-between' }}>
+            <input className="header__search-input" style={{ maxWidth: '400px' }} placeholder="Tìm sản phẩm..." value={productFilter} onChange={(e) => setProductFilter(e.target.value)} />
+            <button className="button-3d" onClick={() => openProductModal(null)}>+ Thêm sản phẩm</button>
+          </div>
+          <div className="adminPage__tableWrapper glass" style={{ borderRadius: '16px', padding: '20px', overflowX: 'auto', border: '1px solid var(--border)' }}>
+            <table className="adminPage__table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid var(--border)' }}>
+                  <th style={{ padding: '15px' }}>Ảnh</th>
+                  <th style={{ padding: '15px' }}>Tên sản phẩm</th>
+                  <th style={{ padding: '15px' }}>Danh mục</th>
+                  <th style={{ padding: '15px' }}>Giá</th>
+                  <th style={{ padding: '15px' }}>Kho</th>
+                  <th style={{ padding: '15px' }}>Hành động</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredProducts.map((p) => (
+                  <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '15px' }}>
+                      {p.image && String(p.image).startsWith('http') ? (
+                        <img src={String(p.image).slice(0, 500)} alt={p.name} style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '8px' }} onError={e => { e.target.style.display='none' }}/>
+                      ) : (
+                        <div style={{ width: '50px', height: '50px', borderRadius: '8px', background: 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem' }}>🖼️</div>
+                      )}
+                    </td>
+                    <td style={{ padding: '15px', maxWidth: '250px' }}>{p.name}</td>
+                    <td style={{ padding: '15px' }}>{p.category}</td>
+                    <td style={{ padding: '15px' }}>{Number(p.price).toLocaleString('vi-VN')}₫</td>
+                    <td style={{ padding: '15px' }}>{p.stock_count}</td>
+                    <td style={{ padding: '15px' }}>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button className="button-3d secondary" style={{ padding: '6px 12px', fontSize: '0.8rem' }} onClick={() => openProductModal(p)}>Sửa</button>
+                        <button className="button-3d secondary" style={{ padding: '6px 12px', fontSize: '0.8rem', color: 'var(--danger)' }} onClick={() => deleteProduct(p.id)}>Xóa</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'orders' && (
+        <div className="adminPage__content">
+          <div className="adminPage__toolbar" style={{ marginBottom: '20px' }}>
+            <input className="header__search-input" style={{ maxWidth: '400px' }} placeholder="Tìm theo mã đơn, tên, sđt..." value={orderFilter} onChange={(e) => setOrderFilter(e.target.value)} />
+          </div>
+          <div className="adminPage__tableWrapper glass" style={{ borderRadius: '16px', padding: '20px', overflowX: 'auto', border: '1px solid var(--border)' }}>
+            <table className="adminPage__table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid var(--border)' }}>
+                  <th style={{ padding: '15px' }}>Mã đơn</th>
+                  <th style={{ padding: '15px' }}>Khách hàng</th>
+                  <th style={{ padding: '15px' }}>SĐT / Email</th>
+                  <th style={{ padding: '15px' }}>Tổng tiền</th>
+                  <th style={{ padding: '15px' }}>Ngày đặt</th>
+                  <th style={{ padding: '15px' }}>Trạng thái</th>
+                  <th style={{ padding: '15px' }}>Hành động</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredOrders.map((o) => (
+                  <tr key={o.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '15px', fontWeight: 'bold' }}>#{o.id}</td>
+                    <td style={{ padding: '15px' }}>{o.customer_name}</td>
+                    <td style={{ padding: '15px' }}>{o.phone}<br/><small>{o.user_email}</small></td>
+                    <td style={{ padding: '15px', color: 'var(--danger)', fontWeight: 'bold' }}>{Number(o.total).toLocaleString('vi-VN')}₫</td>
+                    <td style={{ padding: '15px' }}>{new Date(o.created_at).toLocaleDateString('vi-VN')}</td>
+                    <td style={{ padding: '15px' }}>
+                      <span className={`status-badge status-${o.status}`}>
+                        {o.status === 'pending' ? '⏳ Đang xử lý' : o.status === 'completed' ? '✅ Đã giao' : '❌ Đã hủy'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '15px' }}>
+                      <select className="header__search-input" style={{ padding: '6px 12px', width: '130px' }} value={o.status} onChange={(e) => updateOrderStatus(o.id, e.target.value)}>
+                        <option value="pending">Chờ xử lý</option>
+                        <option value="completed">Đã giao (Xong)</option>
+                        <option value="cancelled">Hủy đơn</option>
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL SẢN PHẨM */}
+      {showProductModal && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal glass">
+            <h2>{editingProductId ? 'Sửa sản phẩm' : 'Thêm sản phẩm mới'}</h2>
+            <form onSubmit={saveProduct} className="admin-form">
+              <div className="form-group">
+                <label>Tên sản phẩm *</label>
+                <input required value={editProductForm.name} onChange={e => setEditProductForm(p => ({...p, name: e.target.value}))} />
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Giá bán (VNĐ) *</label>
+                  <input type="number" required value={editProductForm.price} onChange={e => setEditProductForm(p => ({...p, price: e.target.value}))} />
+                </div>
+                <div className="form-group">
+                  <label>Giá cũ (VNĐ)</label>
+                  <input type="number" value={editProductForm.old_price} onChange={e => setEditProductForm(p => ({...p, old_price: e.target.value}))} />
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Danh mục</label>
+                  <select value={editProductForm.category} onChange={e => setEditProductForm(p => ({...p, category: e.target.value}))}>
+                    <option value="">Chọn danh mục</option>
+                    <option value="Điện thoại">Điện thoại</option>
+                    <option value="Laptop">Laptop</option>
+                    <option value="Máy tính bảng">Máy tính bảng</option>
+                    <option value="TV & Âm thanh">TV & Âm thanh</option>
+                    <option value="Gia dụng">Gia dụng</option>
+                    <option value="Thiết bị gia dụng">Thiết bị gia dụng</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Tồn kho</label>
+                  <input type="number" value={editProductForm.stock_count} onChange={e => setEditProductForm(p => ({...p, stock_count: e.target.value}))} />
+                </div>
+              </div>
+              <div className="form-group">
+                <label>URL Hình ảnh</label>
+                <input value={editProductForm.image} onChange={e => setEditProductForm(p => ({...p, image: e.target.value}))} />
+              </div>
+              <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <input type="checkbox" id="flashsale" checked={editProductForm.is_flash_sale} onChange={e => setEditProductForm(p => ({...p, is_flash_sale: e.target.checked}))} />
+                <label htmlFor="flashsale" style={{ margin: 0 }}>Đưa vào Flash Sale</label>
+              </div>
+              <div className="form-actions" style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button type="button" className="button-3d secondary" onClick={() => setShowProductModal(false)}>Hủy</button>
+                <button type="submit" className="button-3d">Lưu sản phẩm</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </main>
   )
 }
