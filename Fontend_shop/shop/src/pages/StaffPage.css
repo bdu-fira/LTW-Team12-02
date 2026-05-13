@@ -97,3 +97,42 @@
 .button--danger:hover {
   filter: brightness(0.92);
 }
+
+/* Tab Styles */
+.staff-tab {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 10px 20px;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.3s;
+}
+
+.staff-tab:hover {
+  background: rgba(0,0,0,0.05);
+  color: var(--text);
+}
+
+.staff-tab.active {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 4px 10px rgba(0, 112, 243, 0.3);
+}
+
+/* Status Badges */
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: inline-block;
+  min-width: 110px;
+  text-align: center;
+}
+
+.status-pending { background: rgba(255, 165, 2, 0.1); color: #ffa502; }
+.status-completed { background: rgba(46, 213, 115, 0.1); color: #2ed573; }
+.status-cancelled { background: rgba(255, 71, 87, 0.1); color: #ff4757; }

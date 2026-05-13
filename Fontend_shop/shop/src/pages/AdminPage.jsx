@@ -276,8 +276,8 @@ export function AdminPage({ user, onUserUpdate, onUserDelete, onLogout }) {
                 {filteredProducts.map((p) => (
                   <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ padding: '15px' }}>
-                      {p.image && String(p.image).startsWith('http') ? (
-                        <img src={String(p.image).slice(0, 500)} alt={p.name} style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '8px' }} onError={e => { e.target.style.display='none' }}/>
+                      {p.image ? (
+                        <img src={p.image} alt={p.name} style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '8px' }} onError={e => { e.target.style.display='none' }}/>
                       ) : (
                         <div style={{ width: '50px', height: '50px', borderRadius: '8px', background: 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem' }}>🖼️</div>
                       )}
