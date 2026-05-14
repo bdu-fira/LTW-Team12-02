@@ -122,7 +122,16 @@ function App() {
     setProductsError(null)
 
     try {
-      const res = await fetch('http://localhost:4000/api/products')
+      const params = new URLSearchParams()
+      if (activeCategory && activeCategory !== 'Tất cả') params.append('category', activeCategory)
+      if (priceRange === 'under5') params.append('maxPrice', '5000000')
+      else if (priceRange === '5to15') { params.append('minPrice', '5000000'); params.append('maxPrice', '15000000'); }
+      else if (priceRange === 'over15') params.append('minPrice', '15000000')
+      if (appliedSearchTerm) params.append('search', appliedSearchTerm)
+      if (sortBy && sortBy !== 'default') params.append('sort', sortBy)
+
+      const url = `http://localhost:4000/api/products?${params.toString()}`
+      const res = await fetch(url)
       if (!res.ok) {
         throw new Error(`Lỗi khi lấy sản phẩm (${res.status})`)
       }
@@ -163,34 +172,7 @@ function App() {
     if (location.pathname === '/') {
       fetchProducts()
     }
-  }, [location.pathname])
-
-  const filteredProducts = useMemo(() => {
-    const term = appliedSearchTerm.trim().toLowerCase()
-    let result = products
-
-    if (activeCategory && activeCategory !== 'Tất cả') {
-      result = result.filter(p => p.category === activeCategory)
-    }
-
-    if (priceRange === 'under5') result = result.filter(p => p.price < 5000000)
-    else if (priceRange === '5to15') result = result.filter(p => p.price >= 5000000 && p.price <= 15000000)
-    else if (priceRange === 'over15') result = result.filter(p => p.price > 15000000)
-
-    if (term) {
-      result = result.filter((p) => {
-        const title = String(p.name || '').toLowerCase()
-        const desc = String(p.description || '').toLowerCase()
-        return title.includes(term) || desc.includes(term)
-      })
-    }
-
-    if (sortBy === 'priceAsc') result.sort((a, b) => a.price - b.price)
-    else if (sortBy === 'priceDesc') result.sort((a, b) => b.price - a.price)
-    else if (sortBy === 'sold') result.sort((a, b) => (b.sold_count || 0) - (a.sold_count || 0))
-
-    return result
-  }, [products, appliedSearchTerm, activeCategory, priceRange, sortBy])
+  }, [location.pathname, activeCategory, priceRange, appliedSearchTerm, sortBy])
 
   const openAddProduct = () => {
     navigate('/staff')
@@ -294,13 +276,13 @@ function App() {
                         Thử lại
                       </button>
                     </div>
-                  ) : filteredProducts.length === 0 ? (
+                  ) : products.length === 0 ? (
                     <div style={{ padding: '80px 0', textAlign: 'center' }}>
                       <p>Không tìm thấy sản phẩm phù hợp.</p>
                     </div>
                   ) : (
                     <div className="productGrid">
-                      {filteredProducts.map((product) => (
+                      {products.map((product) => (
                         <ProductCard
                           key={product.id}
                           product={product}

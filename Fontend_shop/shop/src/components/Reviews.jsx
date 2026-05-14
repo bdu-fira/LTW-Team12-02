@@ -5,38 +5,58 @@ export function Reviews({ product, onClose, user }) {
   const [reviews, setReviews] = useState([])
   const [newReview, setNewReview] = useState({ rating: 5, comment: '' })
 
-  useEffect(() => {
-    // Mock load reviews for product
-    const stored = JSON.parse(window.localStorage.getItem(`shop-reviews-${product.id}`) || '[]')
-    if (stored.length > 0) {
-      setReviews(stored)
-    } else {
-      setReviews([
-        { id: 1, user: 'Nguyen Van A', rating: 5, comment: 'Sản phẩm rất tốt, giao hàng nhanh!', date: '2026-04-20' },
-        { id: 2, user: 'Tran Thi B', rating: 4, comment: 'Chất lượng ổn trong tầm giá.', date: '2026-04-22' }
-      ])
+  const loadReviews = async () => {
+    try {
+      const res = await fetch(`http://localhost:4000/api/reviews/${product.id}`)
+      if (res.ok) {
+        const data = await res.json()
+        setReviews(data.map(r => ({
+          id: r.id,
+          user: r.user_email,
+          rating: r.rating,
+          comment: r.comment,
+          date: new Date(r.created_at).toLocaleDateString('vi-VN')
+        })))
+      }
+    } catch (e) {
+      console.error(e)
     }
-  }, [product.id])
-
-  const saveReviews = (updated) => {
-    setReviews(updated)
-    window.localStorage.setItem(`shop-reviews-${product.id}`, JSON.stringify(updated))
   }
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    loadReviews()
+  }, [product.id])
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (!newReview.comment.trim()) return
-
-    const review = {
-      id: Date.now(),
-      user: user ? (user.name || user.email) : 'Khách ẩn danh',
-      rating: Number(newReview.rating),
-      comment: newReview.comment,
-      date: new Date().toISOString().split('T')[0]
+    if (!user) {
+      alert("Bạn cần đăng nhập để gửi đánh giá.")
+      return
     }
 
-    saveReviews([review, ...reviews])
-    setNewReview({ rating: 5, comment: '' })
+    try {
+      const res = await fetch(`http://localhost:4000/api/reviews/${product.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_email: user.email,
+          rating: Number(newReview.rating),
+          comment: newReview.comment
+        })
+      })
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.error || 'Lỗi khi gửi đánh giá')
+      }
+
+      alert("Đánh giá của bạn đã được gửi và đang chờ Admin duyệt!")
+      setNewReview({ rating: 5, comment: '' })
+      // No need to reload reviews since it's pending and won't show anyway
+    } catch (e) {
+      alert("Lỗi: " + e.message)
+    }
   }
 
   return (

@@ -4,7 +4,10 @@ import './AdminPage.css'
 
 export function AdminPage({ user, onUserUpdate, onUserDelete, onLogout }) {
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState('users') // 'users', 'products', 'orders'
+  const [activeTab, setActiveTab] = useState('dashboard') // 'dashboard', 'users', 'products', 'orders'
+
+  // Stats State
+  const [stats, setStats] = useState(null)
 
   // Users State
   const [users, setUsers] = useState([])
@@ -27,13 +30,46 @@ export function AdminPage({ user, onUserUpdate, onUserDelete, onLogout }) {
   const [orders, setOrders] = useState([])
   const [orderFilter, setOrderFilter] = useState('')
 
+  // Reviews State
+  const [reviews, setReviews] = useState([])
+
   useEffect(() => {
     if (user?.role === 'admin') {
+      loadStats()
       loadUsers()
       loadProducts()
       loadOrders()
+      loadReviews()
     }
   }, [user])
+
+  const loadStats = async () => {
+    try {
+      const res = await fetch('http://localhost:4000/api/stats')
+      if (res.ok) setStats(await res.json())
+    } catch(e) { console.error(e) }
+  }
+
+  // ================= REVIEWS LOGIC =================
+  const loadReviews = async () => {
+    try {
+      const res = await fetch('http://localhost:4000/api/admin/reviews')
+      if (res.ok) setReviews(await res.json())
+    } catch(e) { console.error(e) }
+  }
+
+  const updateReviewStatus = async (id, status) => {
+    try {
+      const res = await fetch(`http://localhost:4000/api/reviews/${id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      })
+      if (res.ok) {
+        setReviews(prev => prev.map(r => r.id === id ? { ...r, status } : r))
+      }
+    } catch(e) { console.error(e) }
+  }
 
   // ================= USERS LOGIC =================
   const loadUsers = async () => {
@@ -190,12 +226,126 @@ export function AdminPage({ user, onUserUpdate, onUserDelete, onLogout }) {
       </header>
 
       <div className="adminPage__tabs" style={{ display: 'flex', gap: '10px', marginBottom: '30px', borderBottom: '2px solid var(--border)', paddingBottom: '10px' }}>
+        <button className={`admin-tab ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>📊 Thống kê</button>
         <button className={`admin-tab ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')}>👥 Người dùng</button>
         <button className={`admin-tab ${activeTab === 'products' ? 'active' : ''}`} onClick={() => setActiveTab('products')}>🛒 Sản phẩm</button>
         <button className={`admin-tab ${activeTab === 'orders' ? 'active' : ''}`} onClick={() => setActiveTab('orders')}>📦 Đơn hàng</button>
+        <button className={`admin-tab ${activeTab === 'reviews' ? 'active' : ''}`} onClick={() => setActiveTab('reviews')}>💬 Đánh giá</button>
       </div>
 
       {/* TABS CONTENT */}
+      {activeTab === 'reviews' && (
+        <div className="adminPage__content glass" style={{ padding: '30px', borderRadius: '32px', overflowX: 'auto' }}>
+          <h2 style={{ marginBottom: '20px' }}>Quản lý Đánh giá sản phẩm</h2>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid var(--border)' }}>
+                <th style={{ padding: '15px' }}>ID</th>
+                <th style={{ padding: '15px' }}>Email</th>
+                <th style={{ padding: '15px' }}>Sản phẩm</th>
+                <th style={{ padding: '15px' }}>Đánh giá</th>
+                <th style={{ padding: '15px' }}>Nội dung</th>
+                <th style={{ padding: '15px' }}>Ngày tạo</th>
+                <th style={{ padding: '15px' }}>Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody>
+              {reviews.map(r => (
+                <tr key={r.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={{ padding: '15px' }}>#{r.id}</td>
+                  <td style={{ padding: '15px' }}>{r.user_email}</td>
+                  <td style={{ padding: '15px' }}>{r.product_name}</td>
+                  <td style={{ padding: '15px', minWidth: '100px' }}>{'⭐'.repeat(r.rating)}</td>
+                  <td style={{ padding: '15px', maxWidth: '300px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.comment}</td>
+                  <td style={{ padding: '15px' }}>{new Date(r.created_at).toLocaleDateString('vi-VN')}</td>
+                  <td style={{ padding: '15px' }}>
+                    <select
+                      className="header__search-input"
+                      style={{ padding: '6px', fontSize: '0.9rem' }}
+                      value={r.status}
+                      onChange={(e) => updateReviewStatus(r.id, e.target.value)}
+                    >
+                      <option value="pending">⏳ Chờ duyệt</option>
+                      <option value="approved">✅ Đã duyệt</option>
+                      <option value="rejected">❌ Từ chối</option>
+                    </select>
+                  </td>
+                </tr>
+              ))}
+              {reviews.length === 0 && (
+                <tr>
+                  <td colSpan="7" style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)' }}>Chưa có đánh giá nào.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {activeTab === 'dashboard' && stats && (
+        <div className="adminPage__content dashboard-content">
+          <div className="dashboard-cards">
+            <div className="dashboard-card glass">
+              <div className="card-icon revenue">💰</div>
+              <div className="card-info">
+                <h3>Tổng doanh thu</h3>
+                <p className="highlight">{Number(stats.totalRevenue).toLocaleString('vi-VN')}₫</p>
+              </div>
+            </div>
+            <div className="dashboard-card glass">
+              <div className="card-icon orders">📦</div>
+              <div className="card-info">
+                <h3>Tổng đơn hàng</h3>
+                <p className="highlight">{stats.totalOrdersCount} đơn</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="dashboard-grid">
+            <div className="dashboard-panel glass">
+              <h3>🏆 Sản phẩm bán chạy nhất</h3>
+              <div className="dashboard-list">
+                {stats.topProducts.map((p, idx) => {
+                  const maxSold = Math.max(...stats.topProducts.map(x => x.total_sold), 1);
+                  const percent = (p.total_sold / maxSold) * 100;
+                  return (
+                    <div key={idx} className="dashboard-list-item">
+                      <div className="item-details">
+                        <span className="item-name">{p.name}</span>
+                        <span className="item-sold">{p.total_sold} đã bán</span>
+                      </div>
+                      <div className="progress-bar-bg">
+                        <div className="progress-bar-fill" style={{ width: `${percent}%` }}></div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="dashboard-panel glass">
+              <h3>🏷️ Hãng/Danh mục bán chạy</h3>
+              <div className="dashboard-list">
+                {stats.topBrands.map((b, idx) => {
+                  const maxSold = Math.max(...stats.topBrands.map(x => x.total_sold), 1);
+                  const percent = (b.total_sold / maxSold) * 100;
+                  return (
+                    <div key={idx} className="dashboard-list-item">
+                      <div className="item-details">
+                        <span className="item-name">{b.category}</span>
+                        <span className="item-sold">{b.total_sold} đã bán</span>
+                      </div>
+                      <div className="progress-bar-bg brand-color">
+                        <div className="progress-bar-fill" style={{ width: `${percent}%` }}></div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {activeTab === 'users' && (
         <div className="adminPage__content">
           <div className="adminPage__toolbar" style={{ marginBottom: '20px' }}>

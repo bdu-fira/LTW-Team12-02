@@ -133,10 +133,17 @@ async function initDB() {
         user_email VARCHAR(100),
         rating TINYINT NOT NULL DEFAULT 5,
         comment TEXT,
+        status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
       )
     `);
+
+    try {
+      await pool.query("ALTER TABLE reviews ADD COLUMN status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending'");
+    } catch(err) {
+      // Column might already exist, ignore error
+    }
 
     console.log('✅ Đã khởi tạo đầy đủ 6 bảng chuẩn hóa!');
 
@@ -163,8 +170,51 @@ initDB();
 // API Endpoints
 app.get('/api/products', async (req, res) => {
   try {
-    if (useMock) return res.json(mockProducts);
-    const [rows] = await pool.query('SELECT * FROM products ORDER BY id DESC');
+    const { category, minPrice, maxPrice, search, sort } = req.query;
+
+    if (useMock) {
+      let result = [...mockProducts];
+      if (category && category !== 'Tất cả') result = result.filter(p => p.category === category);
+      if (minPrice) result = result.filter(p => p.price >= Number(minPrice));
+      if (maxPrice) result = result.filter(p => p.price <= Number(maxPrice));
+      if (search) {
+        const term = search.toLowerCase();
+        result = result.filter(p => p.name.toLowerCase().includes(term) || (p.description && p.description.toLowerCase().includes(term)));
+      }
+      if (sort === 'priceAsc') result.sort((a, b) => a.price - b.price);
+      else if (sort === 'priceDesc') result.sort((a, b) => b.price - a.price);
+      else if (sort === 'sold') result.sort((a, b) => (b.sold_count || 0) - (a.sold_count || 0));
+      else result.sort((a, b) => b.id - a.id);
+      
+      return res.json(result);
+    }
+    
+    let query = 'SELECT * FROM products WHERE 1=1';
+    const params = [];
+    
+    if (category && category !== 'Tất cả') {
+      query += ' AND category = ?';
+      params.push(category);
+    }
+    if (minPrice) {
+      query += ' AND price >= ?';
+      params.push(Number(minPrice));
+    }
+    if (maxPrice) {
+      query += ' AND price <= ?';
+      params.push(Number(maxPrice));
+    }
+    if (search) {
+      query += ' AND (name LIKE ? OR description LIKE ?)';
+      params.push(`%${search}%`, `%${search}%`);
+    }
+    
+    if (sort === 'priceAsc') query += ' ORDER BY price ASC';
+    else if (sort === 'priceDesc') query += ' ORDER BY price DESC';
+    else if (sort === 'sold') query += ' ORDER BY sold_count DESC';
+    else query += ' ORDER BY id DESC';
+
+    const [rows] = await pool.query(query, params);
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -459,7 +509,7 @@ app.get('/api/reviews/:productId', async (req, res) => {
   try {
     if (useMock) return res.json([]);
     const [rows] = await pool.query(
-      'SELECT r.id, r.user_email, r.rating, r.comment, r.created_at FROM reviews r WHERE r.product_id = ? ORDER BY r.id DESC',
+      "SELECT r.id, r.user_email, r.rating, r.comment, r.created_at FROM reviews r WHERE r.product_id = ? AND r.status = 'approved' ORDER BY r.id DESC",
       [productId]
     );
     res.json(rows);
@@ -474,16 +524,125 @@ app.post('/api/reviews/:productId', async (req, res) => {
   if (!user_email || !rating) return res.status(400).json({ error: 'Thiếu thông tin đánh giá.' });
   try {
     if (useMock) {
-      return res.status(201).json({ id: Date.now(), product_id: productId, user_email, rating, comment, created_at: new Date().toISOString() });
+      return res.status(201).json({ id: Date.now(), product_id: productId, user_email, rating, comment, status: 'pending', created_at: new Date().toISOString() });
     }
     const [existing] = await pool.query('SELECT id FROM reviews WHERE product_id = ? AND user_email = ?', [productId, user_email]);
     if (existing.length > 0) return res.status(409).json({ error: 'Bạn đã đánh giá sản phẩm này rồi.' });
     
     const [result] = await pool.query(
-      'INSERT INTO reviews (product_id, user_email, rating, comment) VALUES (?, ?, ?, ?)',
+      "INSERT INTO reviews (product_id, user_email, rating, comment, status) VALUES (?, ?, ?, ?, 'pending')",
       [productId, user_email, rating, comment]
     );
-    res.status(201).json({ id: result.insertId, product_id: productId, user_email, rating, comment, created_at: new Date().toISOString() });
+    res.status(201).json({ id: result.insertId, product_id: productId, user_email, rating, comment, status: 'pending', created_at: new Date().toISOString() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/admin/reviews', async (req, res) => {
+  try {
+    if (useMock) return res.json([]);
+    const [rows] = await pool.query(`
+      SELECT r.id, r.user_email, r.rating, r.comment, r.status, r.created_at, p.name as product_name
+      FROM reviews r
+      JOIN products p ON r.product_id = p.id
+      ORDER BY r.id DESC
+    `);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/reviews/:id/status', async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  try {
+    if (useMock) return res.json({ id, status });
+    await pool.query('UPDATE reviews SET status = ? WHERE id = ?', [status, id]);
+    res.json({ id, status });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Statistics API
+app.get('/api/stats', async (req, res) => {
+  try {
+    if (useMock) {
+      const nonCancelledOrders = mockOrders.filter(o => o.status !== 'cancelled');
+      const totalRevenue = nonCancelledOrders.reduce((sum, o) => sum + Number(o.total || 0), 0);
+      const totalOrdersCount = nonCancelledOrders.length;
+      
+      let productSales = {};
+      let categorySales = {};
+      
+      nonCancelledOrders.forEach(o => {
+        (o.items || []).forEach(item => {
+          // product
+          if (!productSales[item.name]) productSales[item.name] = { name: item.name, total_sold: 0, revenue: 0 };
+          productSales[item.name].total_sold += item.quantity || 1;
+          productSales[item.name].revenue += (item.price * (item.quantity || 1));
+          
+          // category (brand) - we need to look up the product to get category
+          const prodId = item.id || item.product_id;
+          const prod = mockProducts.find(p => String(p.id) === String(prodId));
+          const cat = prod ? prod.category : 'Khác';
+          if (!categorySales[cat]) categorySales[cat] = { category: cat, total_sold: 0 };
+          categorySales[cat].total_sold += item.quantity || 1;
+        });
+      });
+      
+      const topProducts = Object.values(productSales).sort((a, b) => b.total_sold - a.total_sold).slice(0, 5);
+      const topBrands = Object.values(categorySales).sort((a, b) => b.total_sold - a.total_sold).slice(0, 5);
+      
+      return res.json({
+        totalRevenue,
+        totalOrdersCount,
+        topProducts,
+        topBrands
+      });
+    }
+    
+    // Total Revenue & Orders Count
+    const [revenueRows] = await pool.query("SELECT SUM(total) as totalRevenue, COUNT(id) as totalOrdersCount FROM orders WHERE status != 'cancelled'");
+    const totalRevenue = revenueRows[0].totalRevenue || 0;
+    const totalOrdersCount = revenueRows[0].totalOrdersCount || 0;
+    
+    // Top Selling Products
+    const [topProducts] = await pool.query(`
+      SELECT 
+        oi.product_name as name, 
+        SUM(oi.quantity) as total_sold,
+        SUM(oi.quantity * oi.price) as revenue
+      FROM order_items oi
+      JOIN orders o ON oi.order_id = o.id
+      WHERE o.status != 'cancelled'
+      GROUP BY oi.product_id, oi.product_name
+      ORDER BY total_sold DESC
+      LIMIT 5
+    `);
+    
+    // Top Selling Brands/Categories
+    const [topBrands] = await pool.query(`
+      SELECT 
+        COALESCE(p.category, 'Khác') as category,
+        SUM(oi.quantity) as total_sold
+      FROM order_items oi
+      JOIN orders o ON oi.order_id = o.id
+      LEFT JOIN products p ON oi.product_id = p.id
+      WHERE o.status != 'cancelled'
+      GROUP BY category
+      ORDER BY total_sold DESC
+      LIMIT 5
+    `);
+    
+    res.json({
+      totalRevenue,
+      totalOrdersCount,
+      topProducts,
+      topBrands
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
