@@ -18,9 +18,20 @@ import { useLocalStorage } from './hooks/useLocalStorage'
 
 function App() {
   const [cart, setCart] = useLocalStorage('shop-cart', [])
+  const [theme, setTheme] = useLocalStorage('shop-theme', 'light')
   const [products, setProducts] = useState([])
   const [isLoadingProducts, setIsLoadingProducts] = useState(false)
   const [productsError, setProductsError] = useState(null)
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.body.classList.add('dark')
+      document.body.classList.remove('light')
+    } else {
+      document.body.classList.add('light')
+      document.body.classList.remove('dark')
+    }
+  }, [theme])
   const [searchTerm, setSearchTerm] = useState('')
   const [appliedSearchTerm, setAppliedSearchTerm] = useState('')
   const [activeCategory, setActiveCategory] = useState('Tất cả')
@@ -222,9 +233,16 @@ function App() {
         user={currentUser}
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
-        onSearchSubmit={() => setAppliedSearchTerm(searchTerm)}
+        onSearchSubmit={() => {
+          setAppliedSearchTerm(searchTerm);
+          if (location.pathname !== '/') {
+            navigate('/');
+          }
+        }}
         activeCategory={activeCategory}
         onCategorySelect={setActiveCategory}
+        theme={theme}
+        onThemeToggle={() => setTheme(theme === 'light' ? 'dark' : 'light')}
       />
 
       <Routes>

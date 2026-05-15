@@ -108,11 +108,19 @@ export function Cart({ user, items, onUpdateQuantity, onRemove, onClear }) {
               <option value="transfer">Chuyển khoản ngân hàng</option>
             </select>
             {formData.paymentMethod === 'transfer' && (
-              <div className="transfer-info" style={{ marginTop: '8px', padding: '12px', background: 'var(--bg)', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.9rem' }}>
-                <p><strong>Ngân hàng:</strong> Vietcombank</p>
-                <p><strong>STK:</strong> 0123456789</p>
-                <p><strong>Chủ TK:</strong> SHOP ELECTRONICS</p>
-                <p><strong>Nội dung:</strong> Thanh toan don hang {Math.floor(Math.random() * 10000)}</p>
+              <div className="transfer-info" style={{ marginTop: '12px', padding: '16px', background: 'var(--bg-secondary)', borderRadius: '12px', border: '1px solid var(--border)', fontSize: '0.95rem', textAlign: 'center' }}>
+                <p style={{ marginBottom: '12px' }}><strong>Quét mã QR để thanh toán:</strong></p>
+                <img 
+                  src="/payment_qr.png" 
+                  alt="Mã QR thanh toán" 
+                  style={{ width: '100%', maxWidth: '200px', borderRadius: '8px', marginBottom: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} 
+                />
+                <div style={{ textAlign: 'left', background: 'var(--card-bg)', padding: '12px', borderRadius: '8px' }}>
+                  <p><strong>Ngân hàng:</strong> Vietcombank</p>
+                  <p><strong>STK:</strong> 0123456789</p>
+                  <p><strong>Chủ TK:</strong> SHOP ELECTRONICS</p>
+                  <p><strong>Nội dung:</strong> GD_Xanh_{Math.floor(1000 + Math.random() * 9000)}</p>
+                </div>
               </div>
             )}
           </div>

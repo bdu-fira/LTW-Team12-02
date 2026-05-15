@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { ProductCard } from '../components/ProductCard';
 import './ProductDetailPage.css';
 
 function StarRating({ value, onChange }) {
@@ -26,6 +27,7 @@ export function ProductDetailPage({ onAdd, user }) {
   const [product, setProduct] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [relatedProducts, setRelatedProducts] = useState([]);
 
   // Reviews state
   const [reviews, setReviews] = useState([]);
@@ -47,6 +49,11 @@ export function ProductDetailPage({ onAdd, user }) {
         }
         const data = await res.json();
         setProduct(data);
+        
+        // Fetch related products
+        if (data.category) {
+          fetchRelatedProducts(data.category, id);
+        }
       } catch (err) {
         setError(err.message);
       } finally {
@@ -55,7 +62,22 @@ export function ProductDetailPage({ onAdd, user }) {
     };
     fetchProduct();
     fetchReviews();
+    window.scrollTo(0, 0);
   }, [id]);
+
+  const fetchRelatedProducts = async (category, currentId) => {
+    try {
+      const res = await fetch(`http://localhost:4000/api/products?category=${encodeURIComponent(category)}`);
+      if (res.ok) {
+        const data = await res.json();
+        // Lọc bỏ sản phẩm hiện tại và lấy tối đa 4 sản phẩm
+        const filtered = data.filter(p => String(p.id) !== String(currentId)).slice(0, 4);
+        setRelatedProducts(filtered);
+      }
+    } catch (e) {
+      console.error('Lỗi khi tải sản phẩm liên quan:', e);
+    }
+  };
 
   const fetchReviews = async () => {
     try {
@@ -166,6 +188,18 @@ export function ProductDetailPage({ onAdd, user }) {
         </div>
       </div>
 
+      {/* ===== RELATED PRODUCTS SECTION ===== */}
+      {relatedProducts.length > 0 && (
+        <section className="pdp-related-section">
+          <h2 className="pdp-related-title">📦 Sản phẩm liên quan</h2>
+          <div className="pdp-related-grid">
+            {relatedProducts.map(p => (
+              <ProductCard key={p.id} product={p} onAdd={onAdd} />
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* ===== REVIEWS SECTION ===== */}
       <section className="pdp-reviews-section">
         <h2 className="pdp-reviews-title">⭐ Đánh giá sản phẩm</h2>
@@ -210,11 +244,13 @@ export function ProductDetailPage({ onAdd, user }) {
               <div key={r.id} className="pdp-review-card glass">
                 <div className="pdp-review-header">
                   <div className="pdp-reviewer-avatar">{(r.user_email || '?')[0].toUpperCase()}</div>
-                  <div>
+                  <div className="pdp-reviewer-info">
                     <div className="pdp-reviewer-email">{r.user_email}</div>
                     <div className="pdp-review-date">{new Date(r.created_at).toLocaleDateString('vi-VN')}</div>
                   </div>
-                  <StarRating value={r.rating} />
+                  <div className="pdp-review-stars-wrapper">
+                    <StarRating value={r.rating} />
+                  </div>
                 </div>
                 {r.comment && <p className="pdp-review-comment">{r.comment}</p>}
               </div>

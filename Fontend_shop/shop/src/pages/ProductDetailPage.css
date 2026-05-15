@@ -199,7 +199,7 @@
 
 /* ===== Reviews Section ===== */
 .pdp-reviews-section {
-  margin-top: 60px;
+  margin-top: 40px;
 }
 .pdp-reviews-title {
   font-size: 1.8rem;
@@ -281,12 +281,12 @@
 .pdp-review-header {
   display: flex;
   align-items: center;
-  gap: 14px;
-  margin-bottom: 10px;
+  gap: 16px;
+  margin-bottom: 15px;
 }
 .pdp-reviewer-avatar {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--primary), var(--secondary));
   color: white;
@@ -294,16 +294,31 @@
   align-items: center;
   justify-content: center;
   font-weight: 800;
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+.pdp-reviewer-info {
+  flex-grow: 1;
 }
 .pdp-reviewer-email {
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: 1rem;
+  color: var(--text);
+  line-height: 1.2;
 }
 .pdp-review-date {
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   color: var(--text-muted);
+  margin-top: 2px;
+}
+.pdp-review-stars-wrapper {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+.pdp-review-stars-wrapper .pdp-star {
+  font-size: 1.2rem;
 }
 .pdp-review-comment {
   color: var(--text);
@@ -316,4 +331,32 @@
   color: var(--text-muted);
   border: 2px dashed var(--border);
   border-radius: 14px;
+}
+
+/* ===== Related Products Section ===== */
+.pdp-related-section {
+  margin-top: 80px;
+  margin-bottom: 40px;
+}
+
+.pdp-related-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  margin-bottom: 24px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pdp-related-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 24px;
+}
+
+@media (max-width: 600px) {
+  .pdp-related-grid {
+    grid-template-columns: 1fr;
+  }
 }

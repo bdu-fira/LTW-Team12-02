@@ -1,4 +1,9 @@
-import './Header.css'
+import { Layout, Input, Button, Badge, Space, Typography, Menu } from 'antd';
+import './Header.css';
+
+const { Header: AntHeader } = Layout;
+const { Text, Title } = Typography;
+const { Search } = Input;
 
 export function Header({
   cartCount,
@@ -14,93 +19,115 @@ export function Header({
   onSearchSubmit,
   activeCategory,
   onCategorySelect,
+  theme,
+  onThemeToggle,
 }) {
   const categories = [
-    { name: 'Tất cả', icon: '🌟' },
-    { name: 'Điện thoại', icon: '📱' },
-    { name: 'Laptop', icon: '💻' },
-    { name: 'Máy tính bảng', icon: '📱' },
-    { name: 'TV & Âm thanh', icon: '📺' },
-    { name: 'Gia dụng', icon: '🧺' },
-    { name: 'Thiết bị gia dụng', icon: '🏠' },
-  ]
+    { key: 'Tất cả', label: 'Tất cả', icon: '🌟' },
+    { key: 'Điện thoại', label: 'Điện thoại', icon: '📱' },
+    { key: 'Laptop', label: 'Laptop', icon: '💻' },
+    { key: 'Máy tính bảng', label: 'Máy tính bảng', icon: '📱' },
+    { key: 'TV & Âm thanh', label: 'TV & Âm thanh', icon: '📺' },
+    { key: 'Gia dụng', label: 'Gia dụng', icon: '🧺' },
+    { key: 'Thiết bị gia dụng', label: 'Thiết bị gia dụng', icon: '🏠' },
+  ];
+
+  const menuItems = categories.map(cat => ({
+    key: cat.key,
+    label: (
+      <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '16px', fontWeight: 600, fontFamily: 'inherit' }}>
+        <span style={{ fontSize: '18px' }}>{cat.icon}</span>
+        {cat.label}
+      </span>
+    )
+  }));
 
   return (
-    <header className="header">
+    <AntHeader className="header">
       <div className="container">
         <div className="header__top">
-          <a className="header__brand" href="/">
+          
+          {/* Logo */}
+          <a href="/" className="header__brand">
             <div className="header__logo-circle">🛒</div>
-            <span className="header__title">Gia dụng Xanh</span>
+            <Title level={3} className="header__title" style={{ margin: 0 }}>Gia dụng Xanh</Title>
           </a>
 
+          {/* Search */}
           <div className="header__search-container">
-            <input
-              className="header__search-input"
-              type="search"
+            <Search
+              placeholder="Tìm kiếm sản phẩm công nghệ..."
+              allowClear
+              enterButton="Tìm kiếm"
+              size="large"
               value={searchValue}
               onChange={(e) => onSearchChange?.(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && onSearchSubmit?.()}
-              placeholder="Tìm kiếm sản phẩm công nghệ..."
-              aria-label="Tìm sản phẩm"
+              onSearch={onSearchSubmit}
+              className="header__search-input-wrapper"
             />
-            <span className="header__search-icon" onClick={onSearchSubmit}>🔍</span>
           </div>
 
+          {/* Actions */}
           <div className="header__actions">
+            <Button 
+              onClick={onThemeToggle} 
+              shape="circle" 
+              className="header__theme-toggle"
+              icon={<span>{theme === 'dark' ? '☀️' : '🌙'}</span>} 
+            />
+            
             {user ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span className="header__user-info" style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+              <Space size="middle" align="center" className="header__user-section">
+                <Text className="header__greeting">
                   Chào, <strong>{user.name}</strong>
-                </span>
-                <button className="button-3d secondary" style={{ padding: '8px 16px' }} onClick={onOrdersClick}>
-                  📦 Đơn hàng
-                </button>
-                <button className="button-3d secondary" style={{ padding: '8px 16px' }} onClick={onLogout}>
-                  Đăng xuất
-                </button>
-              </div>
+                </Text>
+                
+                <div className="header__user-actions">
+                  {(user.role === 'staff' || user.role === 'admin') && (
+                    <Button onClick={onManageClick} size="small" icon={<span>🛠️</span>}>
+                      Quản lý
+                    </Button>
+                  )}
+                  
+                  <Button onClick={onOrdersClick} size="small" icon={<span>📦</span>}>
+                    Đơn hàng
+                  </Button>
+                  
+                  <Button type="text" danger onClick={onLogout} size="small" style={{ fontWeight: 600 }}>
+                    Thoát
+                  </Button>
+                </div>
+              </Space>
             ) : (
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button className="button-3d" onClick={onLoginClick}>
-                  Đăng nhập
-                </button>
-              </div>
+              <Button type="primary" onClick={onLoginClick} className="button-3d" style={{ transform: 'none' }}>
+                Đăng nhập
+              </Button>
             )}
 
-            {(user?.role === 'staff' || user?.role === 'admin') && (
-              <button className="button-3d secondary" onClick={onManageClick}>
-                🛠️ Quản lý
-              </button>
-            )}
-
-            <button
-              className="button-3d"
-              type="button"
-              onClick={onCartClick}
-              aria-label="Mở giỏ hàng"
-              style={{ padding: '12px 18px' }}
-            >
-              <span className="header__cart-icon">🛒</span>
-              {cartCount > 0 && <span className="header__cart-badge">{cartCount}</span>}
-            </button>
+            <Badge count={cartCount} showZero={false} className="header__cart-badge-wrapper">
+              <Button 
+                type="text" 
+                className="header__cart-btn"
+                onClick={onCartClick}
+              >
+                🛒
+              </Button>
+            </Badge>
           </div>
         </div>
 
-        <nav className="header__nav" aria-label="Danh mục chính">
-          {categories.map(cat => (
-            <div
-              key={cat.name}
-              className={`header__nav-item ${activeCategory === cat.name ? 'header__nav-item--active' : ''}`}
-              onClick={() => onCategorySelect?.(cat.name)}
-            >
-              <span className="header__nav-icon">{cat.icon}</span>
-              <span>{cat.name}</span>
-            </div>
-          ))}
-        </nav>
+        {/* Navigation / Categories */}
+        <div className="header__menu-wrapper">
+          <Menu 
+            theme={theme === 'dark' ? 'dark' : 'light'}
+            mode="horizontal" 
+            selectedKeys={[activeCategory || 'Tất cả']}
+            onClick={(e) => onCategorySelect?.(e.key)}
+            items={menuItems}
+            className="header__menu"
+          />
+        </div>
       </div>
-    </header>
-  )
+    </AntHeader>
+  );
 }
-

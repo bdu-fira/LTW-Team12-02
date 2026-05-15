@@ -237,7 +237,7 @@ export function AdminPage({ user, onUserUpdate, onUserDelete, onLogout }) {
       {activeTab === 'reviews' && (
         <div className="adminPage__content glass" style={{ padding: '30px', borderRadius: '32px', overflowX: 'auto' }}>
           <h2 style={{ marginBottom: '20px' }}>Quản lý Đánh giá sản phẩm</h2>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+          <table style={{ width: '100%', minWidth: '1000px', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid var(--border)' }}>
                 <th style={{ padding: '15px' }}>ID</th>
@@ -535,8 +535,39 @@ export function AdminPage({ user, onUserUpdate, onUserDelete, onLogout }) {
                 </div>
               </div>
               <div className="form-group">
-                <label>URL Hình ảnh</label>
-                <input value={editProductForm.image} onChange={e => setEditProductForm(p => ({...p, image: e.target.value}))} />
+                <label>Hình ảnh sản phẩm</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    style={{ padding: '8px', border: '1px dashed var(--border)', borderRadius: '8px', cursor: 'pointer' }}
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setEditProductForm(p => ({ ...p, image: reader.result }));
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Hoặc dán URL:</span>
+                    <input 
+                      style={{ flex: 1 }}
+                      placeholder="https://example.com/image.jpg"
+                      value={editProductForm.image && !editProductForm.image.startsWith('data:') ? editProductForm.image : ''} 
+                      onChange={e => setEditProductForm(p => ({...p, image: e.target.value}))} 
+                    />
+                  </div>
+                  {editProductForm.image && (
+                    <div style={{ marginTop: '8px' }}>
+                      <p style={{ fontSize: '0.8rem', marginBottom: '4px' }}>Xem trước:</p>
+                      <img src={editProductForm.image} alt="Preview" style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--border)' }} />
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <input type="checkbox" id="flashsale" checked={editProductForm.is_flash_sale} onChange={e => setEditProductForm(p => ({...p, is_flash_sale: e.target.checked}))} />

@@ -301,6 +301,16 @@ app.post('/api/orders', async (req, res) => {
     if (useMock) {
       const newOrder = { id: Date.now(), user_email, customer_name, phone, address, total, payment_method, items, status: 'pending', created_at: new Date().toISOString() };
       mockOrders.unshift(newOrder);
+      
+      // Update mock products stock
+      (items || []).forEach(item => {
+        const prod = mockProducts.find(p => String(p.id) === String(item.id));
+        if (prod) {
+          prod.stock_count -= (item.quantity || 1);
+          prod.sold_count += (item.quantity || 1);
+        }
+      });
+      
       return res.status(201).json(newOrder);
     }
 
@@ -316,12 +326,26 @@ app.post('/api/orders', async (req, res) => {
       );
       const orderId = orderResult.insertId;
 
-      // Bảng 4: order_items
+      // Bảng 4: order_items và Cập nhật kho hàng
+      console.log(`📦 Đang xử lý đơn hàng mới với ${items?.length} mặt hàng...`);
       for (const item of (items || [])) {
+        console.log(` - Sản phẩm: ${item.name} (ID: ${item.id}, SL: ${item.quantity})`);
+        // Chèn vào chi tiết đơn hàng
         await conn.query(
           'INSERT INTO order_items (order_id, product_id, product_name, quantity, price, image) VALUES (?, ?, ?, ?, ?, ?)',
           [orderId, item.id || null, item.name, item.quantity || 1, item.price, item.image || null]
         );
+
+        // Cập nhật số lượng tồn kho và đã bán (nếu có product_id)
+        if (item.id) {
+          const [updateResult] = await conn.query(
+            'UPDATE products SET stock_count = stock_count - ?, sold_count = sold_count + ? WHERE id = ?',
+            [item.quantity || 1, item.quantity || 1, item.id]
+          );
+          console.log(`   ✅ Đã cập nhật kho cho ID ${item.id}. Rows affected: ${updateResult.affectedRows}`);
+        } else {
+          console.warn(`   ⚠️ Không tìm thấy ID cho sản phẩm ${item.name}, bỏ qua cập nhật kho.`);
+        }
       }
 
       // Bảng 5: shipping_details

@@ -1,6 +1,7 @@
 :root {
   /* Vibrant Summer Palette */
   --primary: #fb923c; 
+  --primary-rgb: 251, 146, 60;
   --primary-glow: rgba(251, 146, 60, 0.2);
   --secondary: #0ea5e9; /* Sky Blue */
   --accent: #facc15; 
@@ -10,6 +11,7 @@
   /* Summer Background - Refreshing Sky Blue */
   --bg: #f0f9ff; 
   --card-bg: #ffffff;
+  --bg-secondary: rgba(14, 165, 233, 0.06);
   --text-main: #0c4a6e; /* Deep Ocean Blue */
   --text-muted: #0369a1; 
   --border: #bae6fd;
@@ -31,18 +33,30 @@ body {
   line-height: 1.6;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #082f49; 
-    --card-bg: #0c4a6e;
-    --text-main: #e0f2fe;
-    --text-muted: #7dd3fc;
-    --border: #075985;
-    --glass: rgba(8, 47, 73, 0.8);
-    --shadow-3d: 0 4px 0 #0369a1;
-    --shadow-3d-hover: 0 2px 0 #0369a1;
-    --shadow-3d-active: 0 0px 0 #0369a1;
-  }
+body.dark {
+  --bg: #082f49; 
+  --card-bg: #0c4a6e;
+  --bg-secondary: rgba(255, 255, 255, 0.07);
+  --text-main: #e0f2fe;
+  --text-muted: #7dd3fc;
+  --border: #075985;
+  --glass: rgba(8, 47, 73, 0.9);
+  --shadow-3d: 0 4px 0 #0369a1;
+  --shadow-3d-hover: 0 2px 0 #0369a1;
+  --shadow-3d-active: 0 0px 0 #0369a1;
+}
+
+body.light {
+  --bg: #f0f9ff; 
+  --card-bg: #ffffff;
+  --bg-secondary: rgba(14, 165, 233, 0.06);
+  --text-main: #0c4a6e; 
+  --text-muted: #0369a1; 
+  --border: #bae6fd;
+  --glass: rgba(255, 255, 255, 0.9);
+  --shadow-3d: 0 4px 0 #ea580c;
+  --shadow-3d-hover: 0 2px 0 #ea580c;
+  --shadow-3d-active: 0 0px 0 #ea580c;
 }
 
 * {
