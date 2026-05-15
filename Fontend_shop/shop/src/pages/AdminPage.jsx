@@ -22,7 +22,7 @@ export function AdminPage({ user, onUserUpdate, onUserDelete, onLogout }) {
   const [productFilter, setProductFilter] = useState('')
   const [editingProductId, setEditingProductId] = useState(null)
   const [editProductForm, setEditProductForm] = useState({
-    name: '', price: 0, old_price: '', category: '', stock_count: 0, image: '', is_flash_sale: false, description: ''
+    name: '', brand: '', warranty: '', price: 0, old_price: '', category: '', stock_count: 0, image: '', is_flash_sale: false, description: '', specs: ''
   })
   const [showProductModal, setShowProductModal] = useState(false)
 
@@ -126,12 +126,14 @@ export function AdminPage({ user, onUserUpdate, onUserDelete, onLogout }) {
     if (p) {
       setEditingProductId(p.id)
       setEditProductForm({
-        name: p.name, price: p.price, old_price: p.old_price || '', category: p.category || '', 
-        stock_count: p.stock_count || 0, image: p.image || '', is_flash_sale: !!p.is_flash_sale, description: p.description || ''
+        name: p.name, brand: p.brand || '', warranty: p.warranty || '',
+        price: p.price, old_price: p.old_price || '', category: p.category || '', 
+        stock_count: p.stock_count || 0, image: p.image || '', is_flash_sale: !!p.is_flash_sale, 
+        description: p.description || '', specs: p.specs || ''
       })
     } else {
       setEditingProductId(null)
-      setEditProductForm({ name: '', price: 0, old_price: '', category: '', stock_count: 0, image: '', is_flash_sale: false, description: '' })
+      setEditProductForm({ name: '', brand: '', warranty: '', price: 0, old_price: '', category: '', stock_count: 0, image: '', is_flash_sale: false, description: '', specs: '' })
     }
     setShowProductModal(true)
   }
@@ -504,7 +506,17 @@ export function AdminPage({ user, onUserUpdate, onUserDelete, onLogout }) {
             <form onSubmit={saveProduct} className="admin-form">
               <div className="form-group">
                 <label>Tên sản phẩm *</label>
-                <input required value={editProductForm.name} onChange={e => setEditProductForm(p => ({...p, name: e.target.value}))} />
+                <input type="text" required value={editProductForm.name} onChange={e => setEditProductForm(p => ({...p, name: e.target.value}))} />
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Hãng sản xuất</label>
+                  <input type="text" placeholder="VD: Apple, Samsung..." value={editProductForm.brand} onChange={e => setEditProductForm(p => ({...p, brand: e.target.value}))} />
+                </div>
+                <div className="form-group">
+                  <label>Bảo hành</label>
+                  <input type="text" placeholder="VD: 12 tháng, 2 năm..." value={editProductForm.warranty} onChange={e => setEditProductForm(p => ({...p, warranty: e.target.value}))} />
+                </div>
               </div>
               <div className="form-row">
                 <div className="form-group">
@@ -568,6 +580,27 @@ export function AdminPage({ user, onUserUpdate, onUserDelete, onLogout }) {
                     </div>
                   )}
                 </div>
+              </div>
+              <div className="form-group">
+                <label>Mô tả ngắn sản phẩm</label>
+                <textarea 
+                  rows={3} 
+                  placeholder="Nhập mô tả tóm tắt về sản phẩm..."
+                  value={editProductForm.description} 
+                  onChange={e => setEditProductForm(p => ({...p, description: e.target.value}))} 
+                />
+              </div>
+              <div className="form-group">
+                <label>Thông số kỹ thuật chi tiết</label>
+                <textarea 
+                  rows={5} 
+                  placeholder="VD:
+- Vi xử lý: Apple A17 Pro
+- RAM: 8GB
+- Màn hình: 6.1 inch OLED..."
+                  value={editProductForm.specs} 
+                  onChange={e => setEditProductForm(p => ({...p, specs: e.target.value}))} 
+                />
               </div>
               <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <input type="checkbox" id="flashsale" checked={editProductForm.is_flash_sale} onChange={e => setEditProductForm(p => ({...p, is_flash_sale: e.target.checked}))} />

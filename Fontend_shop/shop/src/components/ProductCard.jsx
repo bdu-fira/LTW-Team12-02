@@ -38,6 +38,15 @@ export function ProductCard({ product, onAdd, onDelete }) {
             >
               {product.category || 'Khác'}
             </Tag>
+            {(product.stock_count || 0) <= 0 && (
+              <div style={{ 
+                position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', 
+                backgroundColor: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', 
+                justifyContent: 'center', zIndex: 2 
+              }}>
+                <Tag color="red" style={{ fontSize: '16px', padding: '4px 12px', fontWeight: 'bold', border: '2px solid red' }}>HẾT HÀNG</Tag>
+              </div>
+            )}
           </div>
         }
       >
@@ -76,13 +85,14 @@ export function ProductCard({ product, onAdd, onDelete }) {
           <Space>
             <Button 
               type="primary" 
-              style={{ background: '#00a650' }}
+              style={{ background: (product.stock_count || 0) > 0 ? '#00a650' : '#8c8c8c' }}
+              disabled={(product.stock_count || 0) <= 0}
               onClick={(e) => {
                 e.stopPropagation();
                 onAdd(product);
               }}
             >
-              🛒 Mua
+              {(product.stock_count || 0) > 0 ? '🛒 Mua' : 'Hết hàng'}
             </Button>
             
             {onDelete && (

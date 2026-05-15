@@ -146,6 +146,11 @@ export function ProductDetailPage({ onAdd, user }) {
           <span className="pdp-category">{product.category || 'Khác'}</span>
           <h1 className="pdp-title">{product.name}</h1>
           
+          <div className="pdp-meta-info" style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
+            <span className="pdp-meta-badge">🏷️ Hãng: <strong>{product.brand || 'Chưa cập nhật'}</strong></span>
+            <span className="pdp-meta-badge">🛡️ Bảo hành: <strong>{product.warranty || 'Chưa cập nhật'}</strong></span>
+          </div>
+          
           {avgRating && (
             <div className="pdp-avg-rating">
               <StarRating value={Math.round(avgRating)} />
@@ -174,16 +179,34 @@ export function ProductDetailPage({ onAdd, user }) {
             <p className="pdp-description">{product.description || 'Chưa có mô tả cho sản phẩm này.'}</p>
           </div>
 
+          {product.specs && (
+            <div className="pdp-specs-box">
+              <h3>⚙️ Thông số kỹ thuật</h3>
+              <div className="pdp-specs-content">
+                {product.specs.split('\n').map((line, idx) => (
+                  <div key={idx} className="pdp-spec-line">{line}</div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="pdp-actions">
             <button 
               className="button-3d pdp-add-cart-btn" 
+              style={{ background: (product.stock_count || 0) > 0 ? '' : '#8c8c8c', cursor: (product.stock_count || 0) > 0 ? 'pointer' : 'not-allowed' }}
+              disabled={(product.stock_count || 0) <= 0}
               onClick={() => {
                 onAdd(product);
                 alert('Đã thêm sản phẩm vào giỏ hàng!');
               }}
             >
-              🛒 Thêm vào giỏ hàng
+              {(product.stock_count || 0) > 0 ? '🛒 Thêm vào giỏ hàng' : 'Tạm hết hàng'}
             </button>
+            {(product.stock_count || 0) <= 0 && (
+              <p style={{ color: 'var(--danger)', fontWeight: 'bold', marginTop: '10px', textAlign: 'center' }}>
+                ⚠️ Sản phẩm hiện đang hết hàng. Vui lòng quay lại sau!
+              </p>
+            )}
           </div>
         </div>
       </div>

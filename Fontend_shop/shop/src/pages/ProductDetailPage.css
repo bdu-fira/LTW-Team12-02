@@ -127,9 +127,57 @@
   white-space: pre-wrap;
 }
 
+.pdp-specs-box {
+  margin-top: 20px;
+  padding: 20px;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.pdp-specs-box h3 {
+  font-size: 1.2rem;
+  margin-bottom: 12px;
+  color: var(--primary);
+}
+
+.pdp-specs-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pdp-spec-line {
+  font-size: 0.95rem;
+  color: var(--text);
+  line-height: 1.4;
+  padding-bottom: 4px;
+  border-bottom: 1px dashed var(--border);
+}
+
+.pdp-spec-line:last-child {
+  border-bottom: none;
+}
+
 .pdp-actions {
   margin-top: auto;
   padding-top: 30px;
+}
+
+.pdp-meta-badge {
+  background: var(--bg-secondary);
+  padding: 6px 14px;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pdp-meta-badge strong {
+  color: var(--primary);
 }
 
 .pdp-add-cart-btn {

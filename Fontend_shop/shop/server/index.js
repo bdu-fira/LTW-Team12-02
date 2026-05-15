@@ -23,9 +23,9 @@ let useMock = false;
 
 // Mock data in case DB fails
 let mockProducts = [
-  { id: 1, name: 'iPhone 15 Pro', price: 28990000, old_price: 32000000, is_flash_sale: true, sold_count: 85, stock_count: 15, category: 'Điện thoại', image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500&q=80', description: 'Siêu phẩm Apple 2023' },
-  { id: 2, name: 'MacBook Air M2', price: 26500000, old_price: 30000000, is_flash_sale: true, sold_count: 50, stock_count: 50, category: 'Laptop', image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500&q=80', description: 'Mỏng nhẹ mạnh mẽ' },
-  { id: 3, name: 'Samsung Galaxy S24 Ultra', price: 31990000, old_price: 35000000, is_flash_sale: false, sold_count: 120, stock_count: 30, category: 'Điện thoại', image: 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=500&q=80', description: 'Đỉnh cao AI' }
+  { id: 1, name: 'iPhone 15 Pro', brand: 'Apple', warranty: '12 tháng', price: 28990000, old_price: 32000000, is_flash_sale: true, sold_count: 85, stock_count: 15, category: 'Điện thoại', image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500&q=80', description: 'Siêu phẩm Apple 2023' },
+  { id: 2, name: 'MacBook Air M2', brand: 'Apple', warranty: '12 tháng', price: 26500000, old_price: 30000000, is_flash_sale: true, sold_count: 50, stock_count: 50, category: 'Laptop', image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500&q=80', description: 'Mỏng nhẹ mạnh mẽ' },
+  { id: 3, name: 'Samsung Galaxy S24 Ultra', brand: 'Samsung', warranty: '12 tháng', price: 31990000, old_price: 35000000, is_flash_sale: false, sold_count: 120, stock_count: 30, category: 'Điện thoại', image: 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=500&q=80', description: 'Đỉnh cao AI' }
 ];
 
 let mockOrders = [];
@@ -62,6 +62,8 @@ async function initDB() {
       CREATE TABLE IF NOT EXISTS products (
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
+        brand VARCHAR(100),
+        warranty VARCHAR(50),
         price DECIMAL(15,2) NOT NULL,
         old_price DECIMAL(15,2),
         is_flash_sale BOOLEAN DEFAULT FALSE,
@@ -70,10 +72,16 @@ async function initDB() {
         category VARCHAR(100),
         image LONGTEXT,
         description TEXT,
+        specs TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         deleted_at TIMESTAMP NULL DEFAULT NULL
       )
     `);
+
+    // Migration: Add columns if they don't exist
+    try { await pool.query('ALTER TABLE products ADD COLUMN brand VARCHAR(100) AFTER name'); } catch(e) {}
+    try { await pool.query('ALTER TABLE products ADD COLUMN warranty VARCHAR(50) AFTER brand'); } catch(e) {}
+    try { await pool.query('ALTER TABLE products ADD COLUMN specs TEXT AFTER description'); } catch(e) {}
 
     // Bảng 3: orders
     await pool.query(`
@@ -153,8 +161,8 @@ async function initDB() {
       console.log('📦 Đang chèn dữ liệu mẫu sản phẩm...');
       for (const p of mockProducts) {
         await pool.query(
-          'INSERT INTO products (name, price, old_price, is_flash_sale, sold_count, stock_count, category, image, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-          [p.name, p.price, p.old_price, p.is_flash_sale, p.sold_count, p.stock_count, p.category, p.image, p.description]
+          'INSERT INTO products (name, brand, warranty, price, old_price, is_flash_sale, sold_count, stock_count, category, image, description, specs) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [p.name, p.brand || 'Chưa rõ', p.warranty || '12 tháng', p.price, p.old_price, p.is_flash_sale, p.sold_count, p.stock_count, p.category, p.image, p.description, p.specs || '']
         );
       }
     }
@@ -179,7 +187,7 @@ app.get('/api/products', async (req, res) => {
       if (maxPrice) result = result.filter(p => p.price <= Number(maxPrice));
       if (search) {
         const term = search.toLowerCase();
-        result = result.filter(p => p.name.toLowerCase().includes(term) || (p.description && p.description.toLowerCase().includes(term)));
+        result = result.filter(p => p.name.toLowerCase().includes(term) || (p.brand && p.brand.toLowerCase().includes(term)) || (p.description && p.description.toLowerCase().includes(term)));
       }
       if (sort === 'priceAsc') result.sort((a, b) => a.price - b.price);
       else if (sort === 'priceDesc') result.sort((a, b) => b.price - a.price);
@@ -205,8 +213,8 @@ app.get('/api/products', async (req, res) => {
       params.push(Number(maxPrice));
     }
     if (search) {
-      query += ' AND (name LIKE ? OR description LIKE ?)';
-      params.push(`%${search}%`, `%${search}%`);
+      query += ' AND (name LIKE ? OR brand LIKE ? OR description LIKE ?)';
+      params.push(`%${search}%`, `%${search}%`, `%${search}%`);
     }
     
     if (sort === 'priceAsc') query += ' ORDER BY price ASC';
@@ -238,18 +246,18 @@ app.get('/api/products/:id', async (req, res) => {
 });
 
 app.post('/api/products', async (req, res) => {
-  const { name, price, old_price, is_flash_sale, sold_count, stock_count, category, image, description } = req.body;
+  const { name, brand, warranty, price, old_price, is_flash_sale, sold_count, stock_count, category, image, description, specs } = req.body;
   try {
     if (useMock) {
-      const newP = { id: Date.now(), name, price, old_price, is_flash_sale, sold_count, stock_count, category, image, description };
+      const newP = { id: Date.now(), name, brand, warranty, price, old_price, is_flash_sale, sold_count, stock_count, category, image, description, specs };
       mockProducts.unshift(newP);
       return res.status(201).json(newP);
     }
     const [result] = await pool.query(
-      'INSERT INTO products (name, price, old_price, is_flash_sale, sold_count, stock_count, category, image, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [name, price, old_price, is_flash_sale, sold_count, stock_count, category, image, description]
+      'INSERT INTO products (name, brand, warranty, price, old_price, is_flash_sale, sold_count, stock_count, category, image, description, specs) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [name, brand, warranty, price, old_price, is_flash_sale, sold_count, stock_count, category, image, description, specs]
     );
-    res.status(201).json({ id: result.insertId, name, price, old_price, is_flash_sale, sold_count, stock_count, category, image, description });
+    res.status(201).json({ id: result.insertId, name, brand, warranty, price, old_price, is_flash_sale, sold_count, stock_count, category, image, description, specs });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -257,17 +265,17 @@ app.post('/api/products', async (req, res) => {
 
 app.put('/api/products/:id', async (req, res) => {
   const { id } = req.params;
-  const { name, price, old_price, is_flash_sale, sold_count, stock_count, category, image, description } = req.body;
+  const { name, brand, warranty, price, old_price, is_flash_sale, sold_count, stock_count, category, image, description, specs } = req.body;
   try {
     if (useMock) {
-      mockProducts = mockProducts.map(p => String(p.id) === String(id) ? { ...p, name, price, old_price, is_flash_sale, sold_count, stock_count, category, image, description } : p);
-      return res.json({ id, name, price, old_price, is_flash_sale, sold_count, stock_count, category, image, description });
+      mockProducts = mockProducts.map(p => String(p.id) === String(id) ? { ...p, name, brand, warranty, price, old_price, is_flash_sale, sold_count, stock_count, category, image, description, specs } : p);
+      return res.json({ id, name, brand, warranty, price, old_price, is_flash_sale, sold_count, stock_count, category, image, description, specs });
     }
     await pool.query(
-      'UPDATE products SET name=?, price=?, old_price=?, is_flash_sale=?, sold_count=?, stock_count=?, category=?, image=?, description=? WHERE id=?',
-      [name, price, old_price, is_flash_sale, sold_count, stock_count, category, image, description, id]
+      'UPDATE products SET name=?, brand=?, warranty=?, price=?, old_price=?, is_flash_sale=?, sold_count=?, stock_count=?, category=?, image=?, description=?, specs=? WHERE id=?',
+      [name, brand, warranty, price, old_price, is_flash_sale, sold_count, stock_count, category, image, description, specs, id]
     );
-    res.json({ id, name, price, old_price, is_flash_sale, sold_count, stock_count, category, image, description });
+    res.json({ id, name, brand, warranty, price, old_price, is_flash_sale, sold_count, stock_count, category, image, description, specs });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -330,6 +338,15 @@ app.post('/api/orders', async (req, res) => {
       console.log(`📦 Đang xử lý đơn hàng mới với ${items?.length} mặt hàng...`);
       for (const item of (items || [])) {
         console.log(` - Sản phẩm: ${item.name} (ID: ${item.id}, SL: ${item.quantity})`);
+        
+        // Kiểm tra tồn kho trước khi chèn
+        if (item.id) {
+          const [checkRows] = await conn.query('SELECT stock_count, name FROM products WHERE id = ?', [item.id]);
+          if (checkRows.length > 0 && checkRows[0].stock_count < (item.quantity || 1)) {
+            throw new Error(`Sản phẩm "${checkRows[0].name}" đã hết hàng hoặc không đủ số lượng trong kho.`);
+          }
+        }
+
         // Chèn vào chi tiết đơn hàng
         await conn.query(
           'INSERT INTO order_items (order_id, product_id, product_name, quantity, price, image) VALUES (?, ?, ?, ?, ?, ?)',
@@ -338,11 +355,11 @@ app.post('/api/orders', async (req, res) => {
 
         // Cập nhật số lượng tồn kho và đã bán (nếu có product_id)
         if (item.id) {
-          const [updateResult] = await conn.query(
+          await conn.query(
             'UPDATE products SET stock_count = stock_count - ?, sold_count = sold_count + ? WHERE id = ?',
             [item.quantity || 1, item.quantity || 1, item.id]
           );
-          console.log(`   ✅ Đã cập nhật kho cho ID ${item.id}. Rows affected: ${updateResult.affectedRows}`);
+          console.log(`   ✅ Đã cập nhật kho cho ID ${item.id}.`);
         } else {
           console.warn(`   ⚠️ Không tìm thấy ID cho sản phẩm ${item.name}, bỏ qua cập nhật kho.`);
         }

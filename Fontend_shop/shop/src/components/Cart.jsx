@@ -15,7 +15,13 @@ export function Cart({ user, items, onUpdateQuantity, onRemove, onClear }) {
 
   const total = items.reduce((sum, item) => sum + item.quantity * item.price, 0)
 
-  const handleCheckoutClick = () => setIsCheckout(true)
+  const handleCheckoutClick = () => {
+    if (!user) {
+      alert('Vui lòng đăng nhập để thực hiện đặt hàng!');
+      return;
+    }
+    setIsCheckout(true)
+  }
   const handleBackToCart = () => setIsCheckout(false)
   
   const handleInputChange = (e) => {
@@ -218,9 +224,14 @@ export function Cart({ user, items, onUpdateQuantity, onRemove, onClear }) {
                 Xóa hết
               </button>
               <button className="button-3d" style={{ flex: 2 }} onClick={handleCheckoutClick}>
-                Thanh toán
+                {user ? 'Thanh toán' : '🔐 Đăng nhập để mua'}
               </button>
             </div>
+            {!user && (
+              <p style={{ fontSize: '0.8rem', textAlign: 'center', marginTop: '10px', color: 'var(--text-muted)' }}>
+                Bạn cần đăng nhập để tiếp tục thanh toán.
+              </p>
+            )}
           </div>
         </>
       )}
